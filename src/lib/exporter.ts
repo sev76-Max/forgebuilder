@@ -62,7 +62,7 @@ function getNavbarHtml(meta: any, activePage: string = 'home') {
   const linkStyle = 'font-size: 0.95rem; color: #4a5568; text-decoration: none; transition: color 0.2s; font-weight: 500;';
   const activeStyle = 'font-weight: 700; color: #111827;';
   const servicesLink = activePage === 'home' ? '#services' : 'index.html#services';
-  return `<nav style="position: fixed; top: 0; left: 0; right: 0; z-index: 50; background: rgba(255,255,255,0.98); backdrop-filter: blur(10px); box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05);"><div class="container" style="display: flex; justify-content: space-between; align-items: center; height: 80px; position: relative;">${logoHtml}<label for="nav-toggle" class="hamburger"><span></span><span></span><span></span></label><input type="checkbox" id="nav-toggle" class="nav-toggle"><div class="nav-links" style="display: flex; align-items: center; gap: 2rem;"><a href="index.html" style="${linkStyle} ${activePage === 'home' ? activeStyle : ''}">Accueil</a><a href="${servicesLink}" style="${linkStyle} ${activePage === 'services' ? activeStyle : ''}">Services</a><a href="about.html" style="${linkStyle} ${activePage === 'about' ? activeStyle : ''}">À Propos</a><a href="testimonials.html" style="${linkStyle} ${activePage === 'testimonials' ? activeStyle : ''}">Avis</a><a href="blog.html" style="${linkStyle} ${activePage === 'blog' ? activeStyle : ''}">Blog</a><a href="contact.html" class="btn-primary" style="padding: 0.6rem 1.2rem; font-size: 0.9rem; background-color: ${brandColor};">Contact</a></div></div></nav><div style="height: 80px;"></div>`;
+  return `<nav style="position: fixed; top: 0; left: 0; right: 0; z-index: 50; background: rgba(255,255,255,0.98); backdrop-filter: blur(10px); box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);"><div class="container" style="display: flex; justify-content: space-between; align-items: center; height: 80px; position: relative;">${logoHtml}<label for="nav-toggle" class="hamburger"><span></span><span></span><span></span></label><input type="checkbox" id="nav-toggle" class="nav-toggle"><div class="nav-links" style="display: flex; align-items: center; gap: 2rem;"><a href="index.html" style="${linkStyle} ${activePage === 'home' ? activeStyle : ''}">Accueil</a><a href="${servicesLink}" style="${linkStyle} ${activePage === 'services' ? activeStyle : ''}">Services</a><a href="about.html" style="${linkStyle} ${activePage === 'about' ? activeStyle : ''}">À Propos</a><a href="testimonials.html" style="${linkStyle} ${activePage === 'testimonials' ? activeStyle : ''}">Avis</a><a href="blog.html" style="${linkStyle} ${activePage === 'blog' ? activeStyle : ''}">Blog</a><a href="contact.html" class="btn-primary" style="padding: 0.6rem 1.2rem; font-size: 0.9rem; background-color: ${brandColor};">Contact</a></div></div></nav><div style="height: 80px;"></div>`;
 }
 
 // FOOTER AVEC EMOJIS
@@ -85,14 +85,9 @@ function getSeoHead(meta: any, titleSuffix: string = "", imageUrl: string = "") 
 }
 
 // --- PAGE GENERATORS ---
+
 function generateHomePage(config: SiteConfig): string {
-  const { meta, sections } = config;
-  const theme = meta.theme;
-  const brandColor = theme?.brandColor || theme?.primaryColor || "#F97316";
-  const fTitleColor = theme?.featureTitleColor || "#111827";
-  const fDescColor = theme?.featureDescColor || "#4b5563";
-  const hero = sections.find(s => s.type === 'hero')?.data || {};
-  const features = sections.find(s => s.type === 'features')?.data || { title: "Services", items: [] };
+  const { meta, sections } = config; const theme = meta.theme; const brandColor = theme?.brandColor || theme?.primaryColor || "#F97316"; const fTitleColor = theme?.featureTitleColor || "#111827"; const fDescColor = theme?.featureDescColor || "#4b5563"; const hero = sections.find(s => s.type === 'hero')?.data || {}; const features = sections.find(s => s.type === 'features')?.data || { title: "Services", items: [] };
   const servicesHtml = (features.items || []).map((item: any) => `<div class="card" style="padding: 2rem; text-align: center;"><div style="width: 60px; height: 60px; background: linear-gradient(135deg, ${brandColor}22, ${brandColor}11); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem; font-size: 1.5rem; color: ${brandColor}; font-weight: bold;">${(item.title || 'S').charAt(0)}</div><h3 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 0.5rem; color: ${fTitleColor};">${item.title}</h3><p style="color: ${fDescColor}; font-size: 0.95rem;">${item.description}</p></div>`).join('');
   return `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>${meta.siteName}</title><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">${getSeoHead(meta, "", hero.imageUrl)}${getStyles()}</head><body>${getNavbarHtml(meta, 'home')}<section style="position: relative; min-height: 85vh; display: flex; align-items: center; justify-content: center; background-color: #000; overflow: hidden;"><img src="${hero.imageUrl}" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.5; transform: scale(1.05);" /><div style="position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.7) 100%);"></div><div class="container" style="position: relative; z-index: 10; text-align: center; padding: 2rem;"><h1 style="font-size: clamp(2.5rem, 5vw, 4.5rem); font-weight: 800; margin-bottom: 1.5rem; color: ${theme.textColor || '#fff'}; letter-spacing: -0.03em;">${hero.headline}</h1><p style="font-size: clamp(1rem, 2vw, 1.35rem); margin-bottom: 2.5rem; color: ${theme.secondaryTextColor || '#e5e7eb'}; max-width: 800px; margin-left: auto; margin-right: auto;">${hero.subheadline}</p><a href="contact.html" class="btn-primary" style="background-color: ${brandColor};">${hero.ctaText}</a></div></section><section id="services" class="section" style="background: #f9fafb;"><div class="container"><h2 style="text-align: center; font-size: 2.5rem; font-weight: 800; margin-bottom: 4rem; color: ${fTitleColor};">${features.title}</h2><div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem;">${servicesHtml}</div></div></section><section class="section" style="background: white; text-align: center;"><div class="container"><h2 style="font-size: 2rem; font-weight: 700; margin-bottom: 2rem; color: ${fTitleColor};">Ils nous font confiance</h2><a href="testimonials.html" class="btn-primary" style="background-color: ${fTitleColor}; font-size: 0.95rem; padding: 0.8rem 2rem;">Lire les témoignages</a></div></section>${getFooterHtml(meta)}</body></html>`;
 }
@@ -121,6 +116,16 @@ function generateContactPage(config: SiteConfig): string {
 
 // --- EXPORT FINAL ---
 export function generateSiteFiles(config: SiteConfig): Record<string, string> {
-  return { 'index.html': generateHomePage(config), 'about.html': generateAboutPage(config), 'testimonials.html': generateTestimonialsPage(config), 'blog.html': generateBlogPage(config), 'contact.html': generateContactPage(config), 'manifest.json': generateManifest(config), 'sw.js': generateServiceWorker(), 'icon.svg': generateIconSvg(config), 'README.md': generateReadme(config) };
+  return { 
+    'index.html': generateHomePage(config), 
+    'about.html': generateAboutPage(config), 
+    'testimonials.html': generateTestimonialsPage(config), 
+    'blog.html': generateBlogPage(config), 
+    'contact.html': generateContactPage(config), 
+    'manifest.json': generateManifest(config), 
+    'sw.js': generateServiceWorker(), 
+    'icon.svg': generateIconSvg(config), 
+    'README.md': generateReadme(config) 
+  };
 }
 export function generateHtmlFile(config: SiteConfig): string { return generateHomePage(config); }
