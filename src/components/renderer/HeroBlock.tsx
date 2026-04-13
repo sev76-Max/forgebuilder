@@ -2,39 +2,34 @@
 import React from 'react';
 import LogoDisplay from '../ui/LogoDisplay';
 
-interface HeroBlockProps {
-  siteName: string;
-  headline: string;
-  subheadline: string;
-  ctaText: string;
-  ctaLink: string;
-  imageUrl: string;
-  logoLetter?: string;
-  logoStyle?: string;
-  logoColor?: string;
-  brandFont?: string;
-  logoUrl?: string;
-  textColor?: string;
-  secondaryTextColor?: string;
-  primaryColor?: string;
+interface HeroData {
+  headline?: string;
+  subheadline?: string;
+  ctaText?: string;
+  ctaLink?: string;
+  imageUrl?: string;
 }
 
-const HeroBlock: React.FC<HeroBlockProps> = ({
-  siteName,
-  headline,
-  subheadline,
-  ctaText,
-  ctaLink,
-  imageUrl,
-  logoLetter,
-  logoStyle,
-  logoColor,
-  brandFont,
-  logoUrl,
-  textColor = "#ffffff",
-  secondaryTextColor = "#e5e7eb",
-  primaryColor = "#F97316"
-}) => {
+interface HeroBlockProps {
+  data: HeroData;
+  theme: any; // Le thème global
+  siteName: string;
+}
+
+const HeroBlock: React.FC<HeroBlockProps> = ({ data, theme, siteName }) => {
+  // Extraction avec valeurs par défaut
+  const {
+    headline = "Bienvenue",
+    subheadline = "Description",
+    ctaText = "Commencer",
+    ctaLink = "#",
+    imageUrl = "https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=1920&q=80"
+  } = data || {};
+
+  const primaryColor = theme?.primaryColor || "#F97316";
+  const textColor = theme?.textColor || "#ffffff";
+  const secondaryTextColor = theme?.secondaryTextColor || "#e5e7eb";
+
   return (
     <div style={{ position: 'relative', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#000' }}>
       {/* Background Image */}
@@ -48,14 +43,13 @@ const HeroBlock: React.FC<HeroBlockProps> = ({
       <div style={{ position: 'relative', zIndex: 10, textAlign: 'center', padding: '2rem', maxWidth: '800px', margin: '0 auto' }}>
         
         <div className="mb-6">
-            {/* On passe les props explicitement */}
             <LogoDisplay 
                 siteName={siteName}
-                letter={logoLetter}
-                style={logoStyle}
-                color={logoColor}
-                font={brandFont}
-                imageUrl={logoUrl}
+                letter={theme?.logoLetter}
+                style={theme?.logoStyle}
+                color={theme?.logoColor || theme?.brandColor}
+                font={theme?.brandFont}
+                imageUrl={theme?.logoUrl}
             />
         </div>
 
