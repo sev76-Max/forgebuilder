@@ -1,52 +1,81 @@
-// Ajout de imageUrl dans les props
-import LogoDisplay from "../ui/LogoDisplay"; 
-import React from "react";
+"use client";
+import React from 'react';
+import LogoDisplay from '../ui/LogoDisplay';
 
-export default function HeroBlock({ data, themeColor, layoutStyle, theme, siteName }: { 
-  data: any, 
-  themeColor: string, 
-  layoutStyle?: string,
-  theme?: any,
-  siteName?: string
-}) {
-  const isDark = layoutStyle !== 'light';
-  const titleColor = theme?.textColor || (isDark ? '#ffffff' : '#111827');
-  const descColor = theme?.secondaryTextColor || (isDark ? '#e5e7eb' : '#4b5563');
-  const titleSize = theme?.fontSize ? `${theme.fontSize}px` : '3.5rem';
-  const descSize = theme?.secondaryFontSize ? `${theme.secondaryFontSize}px` : '1.25rem';
-  
-  const brandColor = theme?.brandColor || themeColor;
-  const logoColor = theme?.logoColor || brandColor;
-  const brandFont = theme?.brandFont || 'inherit';
-  const logoStyle = theme?.logoStyle || 'minimal';
-  const logoLetter = theme?.logoLetter;
-  const logoUrl = theme?.logoUrl; // NOUVEAU
+interface HeroBlockProps {
+  siteName: string;
+  headline: string;
+  subheadline: string;
+  ctaText: string;
+  ctaLink: string;
+  imageUrl: string;
+  logoLetter?: string;
+  logoStyle?: string;
+  logoColor?: string;
+  brandFont?: string;
+  logoUrl?: string;
+  textColor?: string;
+  secondaryTextColor?: string;
+  primaryColor?: string;
+}
 
+const HeroBlock: React.FC<HeroBlockProps> = ({
+  siteName,
+  headline,
+  subheadline,
+  ctaText,
+  ctaLink,
+  imageUrl,
+  logoLetter,
+  logoStyle,
+  logoColor,
+  brandFont,
+  logoUrl,
+  textColor = "#ffffff",
+  secondaryTextColor = "#e5e7eb",
+  primaryColor = "#F97316"
+}) => {
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
-      <div className="absolute inset-0 z-0 h-full w-full">
-        <img src={data.imageUrl} alt="Hero background" className="w-full h-full object-cover" style={{ objectFit: 'cover' }} />
-        {isDark ? (<div className="absolute inset-0 bg-black/50"></div>) : (<div className="absolute inset-0 bg-white/60"></div>)}
-      </div>
-      <div className="relative z-10 max-w-4xl mx-auto text-center px-6 pt-20">
-        {siteName && (
-          <div className="mb-6">
+    <div style={{ position: 'relative', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#000' }}>
+      {/* Background Image */}
+      <img 
+        src={imageUrl} 
+        alt="Hero Background" 
+        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.6 }} 
+      />
+      
+      {/* Content Container */}
+      <div style={{ position: 'relative', zIndex: 10, textAlign: 'center', padding: '2rem', maxWidth: '800px', margin: '0 auto' }}>
+        
+        <div className="mb-6">
+            {/* On passe les props explicitement */}
             <LogoDisplay 
-                siteName={siteName} 
+                siteName={siteName}
                 letter={logoLetter}
-                style={logoStyle} 
+                style={logoStyle}
                 color={logoColor}
                 font={brandFont}
-                imageUrl={logoUrl} // PASSAGE DE L'URL
+                imageUrl={logoUrl}
             />
-          </div>
-        )}
-        <h1 className="font-extrabold tracking-tight mb-6 leading-tight drop-shadow-xl" style={{ color: titleColor, fontSize: titleSize }}>{data?.headline || "Bienvenue"}</h1>
-        <p className="max-w-2xl mx-auto mb-10 leading-relaxed" style={{ color: descColor, fontSize: descSize }}>{data?.subheadline || "Description."}</p>
-        <a href={data?.ctaLink || "#"} className="inline-flex items-center gap-3 px-10 py-5 rounded-full text-white font-bold text-lg shadow-2xl transition-all transform hover:scale-105" style={{ backgroundColor: brandColor }}>
-          {data?.ctaText || "Démarrer"}
+        </div>
+
+        <h1 style={{ fontSize: '3.5rem', fontWeight: 800, marginBottom: '1rem', color: textColor }}>
+            {headline}
+        </h1>
+        
+        <p style={{ fontSize: '1.25rem', marginBottom: '2rem', color: secondaryTextColor }}>
+            {subheadline}
+        </p>
+        
+        <a 
+          href={ctaLink} 
+          style={{ display: 'inline-block', padding: '1rem 2.5rem', backgroundColor: primaryColor, color: '#fff', borderRadius: '9999px', fontWeight: 700, fontSize: '1.1rem', textDecoration: 'none', boxShadow: '0 4px 14px 0 rgba(0,0,0,0.25)' }}
+        >
+          {ctaText}
         </a>
       </div>
-    </section>
+    </div>
   );
-}
+};
+
+export default HeroBlock;

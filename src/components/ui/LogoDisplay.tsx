@@ -1,8 +1,6 @@
-"use client";
 import React from 'react';
 import { SiteConfig } from '@/lib/site-config';
 
-// Helper function
 function adjustColor(hex: string, amount: number): string {
   if (!hex || typeof hex !== 'string') return '#000000';
   const cleanHex = hex.replace("#", "");
@@ -14,8 +12,8 @@ function adjustColor(hex: string, amount: number): string {
   return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
 }
 
-// Interface HYBRIDE : Accepte soit 'config', soit les props individuelles
-interface LogoDisplayProps {
+// Définition explicite des types acceptés
+type LogoDisplayProps = {
   config?: SiteConfig;
   siteName?: string;
   letter?: string;
@@ -23,29 +21,39 @@ interface LogoDisplayProps {
   color?: string;
   font?: string;
   imageUrl?: string;
-}
+};
 
-const LogoDisplay: React.FC<LogoDisplayProps> = (props) => {
-  // Extraction intelligente des valeurs
-  // On priorise 'config' s'il est présent, sinon on utilise les props individuelles
-  const siteName = props.config?.meta?.siteName || props.siteName || "Site";
-  const theme = props.config?.meta?.theme;
-  
-  const finalLetter = props.letter || theme?.logoLetter || siteName?.substring(0, 1) || "F";
-  const finalColor = props.color || theme?.logoColor || theme?.brandColor || theme?.primaryColor || "#F97316";
-  const finalStyle = props.style || theme?.logoStyle || "minimal";
-  const finalFont = props.font || theme?.brandFont || "Inter";
-  const finalImageUrl = props.imageUrl || theme?.logoUrl;
+export default function LogoDisplay(props: LogoDisplayProps) {
+  // On extrait tout, avec des valeurs par défaut strictes
+  const {
+    config,
+    siteName = "Site",
+    letter,
+    style = "minimal",
+    color = "#F97316",
+    font = "Inter",
+    imageUrl
+  } = props;
+
+  // Si on a un objet config, on l'utilise pour surcharger les valeurs par défaut
+  const finalSiteName = config?.meta?.siteName || siteName;
+  const theme = config?.meta?.theme;
+
+  const finalLetter = letter || theme?.logoLetter || finalSiteName?.substring(0, 1) || "F";
+  const finalColor = color || theme?.logoColor || theme?.brandColor || theme?.primaryColor || "#F97316";
+  const finalStyle = style || theme?.logoStyle || "minimal";
+  const finalFont = font || theme?.brandFont || "Inter";
+  const finalImageUrl = imageUrl || theme?.logoUrl;
 
   if (finalImageUrl) {
     return <img src={finalImageUrl} alt="Logo" style={{ height: 50, width: 'auto', objectFit: 'contain' }} />;
   }
 
   const getFontSize = (base: number) => {
-     const l = finalLetter.length;
-     if (l > 10) return base * 0.6;
-     if (l > 5) return base * 0.8;
-     return base;
+    const l = finalLetter.length;
+    if (l > 10) return base * 0.6;
+    if (l > 5) return base * 0.8;
+    return base;
   };
 
   const baseStyle: React.CSSProperties = {
@@ -70,6 +78,4 @@ const LogoDisplay: React.FC<LogoDisplayProps> = (props) => {
   };
 
   return <div style={stylesMap[finalStyle] || stylesMap.minimal}>{finalLetter}</div>;
-};
-
-export default LogoDisplay;
+}
