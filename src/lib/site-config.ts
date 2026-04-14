@@ -1,11 +1,11 @@
-// src/lib/site-config.ts
+/// src/lib/site-config.ts
 export interface SiteConfig {
   meta: {
     siteName: string;
     description: string;
     contactEmail?: string;
-    phone?: string;
-    address?: string;
+    phone?: string;      // Ajouté
+    address?: string;    // Ajouté
     theme: {
       primaryColor: string;
       textColor?: string;
