@@ -1,23 +1,26 @@
-export default function AboutBlock({ data, theme }: { data: any, theme: any }) {
-  const titleColor = theme?.featureTitleColor || "#111827";
-  const textColor = theme?.featureDescColor || "#4b5563";
-  const fSize = theme?.featureFontSize ? `${theme.featureFontSize}px` : "16px";
+"use client";
+import React from 'react';
+
+interface AboutBlockProps {
+  data: any;
+  theme?: any; // RENDU OPTIONNEL
+}
+
+const AboutBlock: React.FC<AboutBlockProps> = ({ data, theme }) => {
+  const { title, content, imageUrl } = data || {};
+  const brandColor = theme?.brandColor || theme?.primaryColor || "#F97316";
+  const textColor = theme?.featureTitleColor || "#111";
+  const descColor = theme?.featureDescColor || "#4b5563";
 
   return (
-    <section id="about" className="py-20 bg-gray-50">
-      <div className="max-w-6xl mx-auto px-4 flex flex-col md:flex-row items-center gap-12">
-        {data.imageUrl && (
-          <div className="md:w-1/2">
-            <img src={data.imageUrl} alt="À propos" className="rounded-xl shadow-lg w-full h-auto object-cover aspect-video"/>
-          </div>
-        )}
-        <div className={data.imageUrl ? "md:w-1/2" : "w-full text-center"}>
-          <h2 className="text-3xl font-bold mb-6" style={{ color: titleColor }}>{data.title || "À Propos"}</h2>
-          <p className="text-lg leading-relaxed whitespace-pre-line" style={{ color: textColor, fontSize: fSize }}>
-            {data.content || "Notre histoire..."}
-          </p>
-        </div>
+    <section id="about" style={{ padding: '4rem 1rem', background: 'white' }}>
+      <div style={{ maxWidth: '800px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '2rem', alignItems: 'center' }}>
+        <h2 style={{ fontSize: '2rem', fontWeight: 'bold', color: textColor }}>{title || "À Propos"}</h2>
+        {imageUrl && <img src={imageUrl} alt="About" style={{ width: '100%', maxHeight: '400px', objectFit: 'cover', borderRadius: '0.5rem' }} />}
+        <p style={{ color: descColor, lineHeight: 1.6, whiteSpace: 'pre-line' }}>{content || "Contenu..."}</p>
       </div>
     </section>
   );
-}
+};
+
+export default AboutBlock;

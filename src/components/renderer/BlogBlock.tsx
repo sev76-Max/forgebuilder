@@ -1,28 +1,33 @@
-export default function BlogBlock({ data, theme }: { data: any, theme: any }) {
-  const titleColor = theme?.featureTitleColor || "#111827";
-  const textColor = theme?.featureDescColor || "#4b5563";
+"use client";
+import React from 'react';
 
-  if (!data.items || data.items.length === 0) return null;
+interface BlogBlockProps {
+  data: any;
+  theme?: any; // RENDU OPTIONNEL
+}
+
+const BlogBlock: React.FC<BlogBlockProps> = ({ data, theme }) => {
+  const { title, items } = data || {};
+  const brandColor = theme?.brandColor || theme?.primaryColor || "#F97316";
+  const textColor = theme?.featureTitleColor || "#111";
+  const descColor = theme?.featureDescColor || "#4b5563";
 
   return (
-    <section id="blog" className="py-20 bg-gray-50">
-      <div className="max-w-6xl mx-auto px-4">
-        <h2 className="text-3xl font-bold text-center mb-12" style={{ color: titleColor }}>{data.title || "Notre Blog"}</h2>
-        <div className="grid md:grid-cols-3 gap-8">
-          {data.items.map((item: any, idx: number) => (
-            <article key={idx} className="group cursor-pointer bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition duration-300">
-              <div className="overflow-hidden">
-                <img src={item.imageUrl} alt={item.title} className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300" />
-              </div>
-              <div className="p-6">
-                <span className="text-xs text-gray-400 uppercase">{item.date || "Actualité"}</span>
-                <h3 className="text-xl font-bold mt-2 mb-3 group-hover:text-orange-500 transition-colors" style={{ color: titleColor }}>{item.title}</h3>
-                <p style={{ color: textColor }} className="text-sm line-clamp-3">{item.excerpt}</p>
-              </div>
-            </article>
-          ))}
-        </div>
+    <section id="blog" style={{ padding: '4rem 1rem', background: '#f9fafb' }}>
+      <h2 style={{ textAlign: 'center', fontSize: '2rem', fontWeight: 'bold', marginBottom: '2rem', color: textColor }}>{title || "Blog"}</h2>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem', maxWidth: '1100px', margin: '0 auto' }}>
+        {(items || []).map((item: any, idx: number) => (
+          <article key={idx} style={{ background: 'white', borderRadius: '0.5rem', overflow: 'hidden', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+            {item.imageUrl && <img src={item.imageUrl} alt={item.title} style={{ width: '100%', height: '200px', objectFit: 'cover' }} />}
+            <div style={{ padding: '1rem' }}>
+              <h3 style={{ fontWeight: 'bold', marginBottom: '0.5rem', color: textColor }}>{item.title}</h3>
+              <p style={{ fontSize: '0.9rem', color: descColor }}>{item.excerpt}</p>
+            </div>
+          </article>
+        ))}
       </div>
     </section>
   );
-}
+};
+
+export default BlogBlock;
