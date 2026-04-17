@@ -23,15 +23,15 @@ const DynamicRenderer: React.FC<DynamicRendererProps> = ({ sections, meta }) => 
             return <FeaturesBlock key={index} data={section.data} theme={meta.theme} />;
             
           case 'testimonials':
-            // CORRECTION APPLIQUÉE ICI
+            // CORRECTION : Ajout de theme={meta.theme}
             return <TestimonialsBlock key={index} data={section.data} theme={meta.theme} />;
             
           case 'about':
-            // CORRECTION APPLIQUÉE ICI
+            // CORRECTION : Ajout de theme={meta.theme}
             return <AboutBlock key={index} data={section.data} theme={meta.theme} />;
             
           case 'blog':
-            // CORRECTION APPLIQUÉE ICI
+            // CORRECTION : Ajout de theme={meta.theme}
             return <BlogBlock key={index} data={section.data} theme={meta.theme} />;
             
           default:
