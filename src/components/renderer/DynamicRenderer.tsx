@@ -17,20 +17,22 @@ const DynamicRenderer: React.FC<DynamicRendererProps> = ({ sections, meta }) => 
       {sections.map((section, index) => {
         switch (section.type) {
           case 'hero':
-            // CORRECTION: On envoie seulement 'data', 'theme' et 'siteName'
             return <HeroBlock key={index} data={section.data} theme={meta.theme} siteName={meta.siteName} />;
           
           case 'features':
             return <FeaturesBlock key={index} data={section.data} theme={meta.theme} />;
             
           case 'testimonials':
-            return <TestimonialsBlock key={index} data={section.data} />;
+            // CORRECTION : Ajout de theme={meta.theme}
+            return <TestimonialsBlock key={index} data={section.data} theme={meta.theme} />;
             
           case 'about':
-            return <AboutBlock key={index} data={section.data} />;
+            // CORRECTION : Ajout de theme={meta.theme}
+            return <AboutBlock key={index} data={section.data} theme={meta.theme} />;
             
           case 'blog':
-            return <BlogBlock key={index} data={section.data} />;
+            // CORRECTION : Ajout de theme={meta.theme}
+            return <BlogBlock key={index} data={section.data} theme={meta.theme} />;
             
           default:
             return null;
