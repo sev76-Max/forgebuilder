@@ -34,7 +34,7 @@ const HeroBlock: React.FC<HeroBlockProps> = ({ data, theme, siteName }) => {
       <img src={imageUrl} alt="Hero Background" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.6 }} />
       <div style={{ position: 'relative', zIndex: 10, textAlign: 'center', padding: '2rem', maxWidth: '800px', margin: '0 auto' }}>
         <div className="mb-6">
-            <LogoDisplay siteName={siteName} letter={theme?.logoLetter} style={theme?.logoStyle} color={theme?.logoColor || theme?.brandColor} font={theme?.brandFont} imageUrl={theme?.logoUrl} />
+          <LogoDisplay siteName={siteName} letter={theme?.logoLetter} style={theme?.logoStyle} color={theme?.logoColor || theme?.brandColor} font={theme?.brandFont} imageUrl={theme?.logoUrl} />
         </div>
         <h1 style={{ fontSize: '3.5rem', fontWeight: 800, marginBottom: '1rem', color: textColor }}>{headline}</h1>
         <p style={{ fontSize: '1.25rem', marginBottom: '2rem', color: secondaryTextColor }}>{subheadline}</p>
