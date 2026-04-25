@@ -52,11 +52,10 @@ export function generateFromPrompt(prompt: string): SiteConfig {
     selectedTemplate = templates.coach;
   }
 
-  // On fusionne les meta, en s'assurant que le prompt utilisateur peut surcharger la description par défaut
   return {
     meta: {
       ...(selectedTemplate.meta || {}),
-      description: prompt // On force la description à être le prompt utilisateur
+      description: prompt
     },
     sections: selectedTemplate.sections || []
   } as SiteConfig;
