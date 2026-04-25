@@ -28,6 +28,31 @@ const templates: Record<string, Partial<SiteConfig>> = {
       { type: 'footer', data: {} }
     ]
   },
+  // NOUVEAU TEMPLATE BOUTIQUE
+  boutique: {
+    meta: { 
+      siteName: "Ma Boutique Africaine", 
+      description: "Vente de produits artisanaux et mode", 
+      theme: { primaryColor: "#D97706", fontFamily: "Inter" } 
+    },
+    sections: [
+      { type: 'hero', data: { headline: "L'Artisanat Africain à Portée de Main", subheadline: "Découvrez notre collection unique de vêtements, bijoux et objets d'art faits main.", ctaText: "Voir la Boutique", ctaLink: "#products", imageUrl: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=1470&q=80" } },
+      { 
+        type: 'products', 
+        data: { 
+          title: "Nos Produits Stars", 
+          items: [
+            { title: "Robe Wax Premium", price: "25 000 FCFA", imageUrl: "https://images.unsplash.com/photo-1594938298603-c8148c4dae35?auto=format&fit=crop&w=600&q=80", description: "Coton 100% naturel, coupe moderne." },
+            { title: "Sac en Cuir Artisanal", price: "25 000 FCFA", imageUrl: "https://images.unsplash.com/photo-1590874103328-eac38a683ce7?auto=format&fit=crop&w=600&q=80", description: "Fabriqué à la main par des artisans locaux." },
+            { title: "Bijoux Fantaisie Or", price: "10 000 FCFA", imageUrl: "https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?auto=format&fit=crop&w=600&q=80", description: "Accessoires élégants pour toutes les occasions." },
+            { title: "Tableau Décoratif", price: "45 000 FCFA", imageUrl: "https://images.unsplash.com/photo-1578301978693-85fa9c0320b9?auto=format&fit=crop&w=600&q=80", description: "Peinture abstraite unique." }
+          ] 
+        } 
+      },
+      { type: 'cta', data: { title: "Commande spéciale ou question ?", buttonText: "Nous Contacter sur WhatsApp", buttonLink: "https://wa.me/221000000000" } },
+      { type: 'footer', data: {} }
+    ]
+  },
   default: {
     meta: { 
       siteName: "ForgeBuilder Site", 
@@ -50,6 +75,10 @@ export function generateFromPrompt(prompt: string): SiteConfig {
     selectedTemplate = templates.plombier;
   } else if (lowerPrompt.includes("coach") || lowerPrompt.includes("sport") || lowerPrompt.includes("fitness")) {
     selectedTemplate = templates.coach;
+  } 
+  // NOUVELLE CONDITION
+  else if (lowerPrompt.includes("boutique") || lowerPrompt.includes("shop") || lowerPrompt.includes("vendeur") || lowerPrompt.includes("e-commerce")) {
+    selectedTemplate = templates.boutique;
   }
 
   return {
