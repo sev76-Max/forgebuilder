@@ -105,7 +105,16 @@ function generateHomePage(config: SiteConfig): string {
   const rawPhone = meta.phone || "";
   const cleanPhone = rawPhone.replace(/\D/g, '');
 
-  const servicesHtml = (features.items || []).map((item: any) => `<div class="card" style="padding: 2rem; text-align: center;"><div style="width: 60px; height: 60px; background: linear-gradient(135deg, ${brandColor}22, ${brandColor}11); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem; font-size: 1.5rem; color: ${brandColor}; font-weight: bold;">${(item.title || 'S').charAt(0)}</div><h3 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 0.5rem; color: ${fTitleColor};">${item.title}</h3><p style="color: ${fDescColor}; font-size: 0.95rem;">${item.description}</p></div>`).join('');
+  // CORRECTION : Services cliquables vers des pages dédiées
+  const servicesHtml = (features.items || []).map((item: any, index: number) => `
+    <a href="service-${index + 1}.html" style="text-decoration: none; color: inherit;">
+      <div class="card" style="padding: 2rem; text-align: center; height: 100%;">
+        <div style="width: 60px; height: 60px; background: linear-gradient(135deg, ${brandColor}22, ${brandColor}11); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem; font-size: 1.5rem; color: ${brandColor}; font-weight: bold;">${(item.title || 'S').charAt(0)}</div>
+        <h3 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 0.5rem; color: ${fTitleColor};">${item.title}</h3>
+        <p style="color: ${fDescColor}; font-size: 0.95rem;">${item.description}</p>
+      </div>
+    </a>
+  `).join('');
 
   let productsHtml = '';
   if (products && products.items) {
@@ -148,6 +157,19 @@ function generateHomePage(config: SiteConfig): string {
   return `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>${meta.siteName}</title><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">${getSeoHead(meta, "", hero.imageUrl)}${getStyles()}</head><body>${getNavbarHtml(config, 'home')}<section style="position: relative; min-height: 85vh; display: flex; align-items: center; justify-content: center; background-color: #000; overflow: hidden;"><img src="${hero.imageUrl}" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.5; transform: scale(1.05);" /><div style="position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.7) 100%);"></div><div class="container" style="position: relative; z-index: 10; text-align: center; padding: 2rem;"><h1 style="font-size: clamp(2.5rem, 5vw, 4.5rem); font-weight: 800; margin-bottom: 1.5rem; color: ${theme.textColor || '#fff'}; letter-spacing: -0.03em;">${hero.headline}</h1><p style="font-size: clamp(1rem, 2vw, 1.35rem); margin-bottom: 2.5rem; color: ${theme.secondaryTextColor || '#e5e7eb'}; max-width: 800px; margin-left: auto; margin-right: auto;">${hero.subheadline}</p><a href="${heroHref}" target="${heroTarget}" class="btn-primary" style="background-color: ${brandColor};">${hero.ctaText}</a></div></section><section id="services" class="section" style="background: #f9fafb;"><div class="container"><h2 style="text-align: center; font-size: 2.5rem; font-weight: 800; margin-bottom: 4rem; color: ${fTitleColor};">${features.title}</h2><div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem;">${servicesHtml}</div></div></section>${productsHtml}<section class="section" style="background: white; text-align: center;"><div class="container"><h2 style="font-size: 2rem; font-weight: 700; margin-bottom: 2rem; color: ${fTitleColor};">Ils nous font confiance</h2><a href="testimonials.html" class="btn-primary" style="background-color: ${fTitleColor}; font-size: 0.95rem; padding: 0.8rem 2rem;">Lire les témoignages</a></div></section>${getFooterHtml(meta)}</body></html>`;
 }
 
+// NOUVEAU : Page de détail pour un service
+function generateServicePage(config: SiteConfig, item: any, index: number): string {
+  const { meta } = config;
+  const theme = meta.theme;
+  const brandColor = theme?.brandColor || theme?.primaryColor;
+  const fTitleColor = theme?.featureTitleColor || "#111827";
+  const fDescColor = theme?.featureDescColor || "#4b5563";
+  
+  const heroLink = config.sections.find(s => s.type === 'hero')?.data?.ctaLink || '#';
+
+  return `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>${item.title} - ${meta.siteName}</title><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">${getSeoHead(meta, item.title)}${getStyles()}</head><body>${getNavbarHtml(config, 'services')}<div class="container" style="padding: 6rem 1.5rem; max-width: 800px; margin: 0 auto;"><a href="index.html#services" style="color: ${brandColor}; font-weight: 600; display: inline-block; margin-bottom: 2rem;">← Retour aux services</a><article><div style="width: 80px; height: 80px; background: linear-gradient(135deg, ${brandColor}22, ${brandColor}11); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 2rem; font-size: 2.5rem; color: ${brandColor}; font-weight: bold;">${(item.title || 'S').charAt(0)}</div><h1 style="font-size: 3rem; font-weight: 800; margin-bottom: 1rem; color: ${fTitleColor}; line-height: 1.1;">${item.title}</h1><div style="font-size: 1.2rem; color: ${fDescColor}; line-height: 1.8; margin-bottom: 3rem;">${item.description}</div><a href="${heroLink}" class="btn-primary" style="background-color: ${brandColor};">Demander un devis</a></article></div>${getFooterHtml(meta)}</body></html>`;
+}
+
 function generateAboutPage(config: SiteConfig): string {
   const { meta } = config; const about = config.sections.find(s => s.type === 'about')?.data || {}; const theme = meta.theme; const brandColor = theme?.brandColor || theme?.primaryColor;
   return `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>À Propos - ${meta.siteName}</title><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">${getSeoHead(meta, "À Propos", about.imageUrl)}${getStyles()}</head><body style="background-color: ${theme.globalBgColor || '#fff'};">${getNavbarHtml(config, 'about')}<div class="container" style="padding: 6rem 1.5rem;"><div style="display: grid; grid-template-columns: 1fr; gap: 3rem; align-items: center;"><div><h1 style="font-size: 3rem; font-weight: 800; margin-bottom: 1.5rem; color: ${theme.featureTitleColor || '#111'}; line-height: 1.1;">${about.title || "Notre Histoire"}</h1><div style="font-size: 1.1rem; line-height: 1.8; color: ${theme.featureDescColor || '#4b5563'}; white-space: pre-line;">${about.content || "Contenu..."}</div></div>${about.imageUrl ? `<div style="position: relative;"><div style="position: absolute; inset: 0; background: ${brandColor}; transform: rotate(3deg); border-radius: 1rem; opacity: 0.1;"></div><img src="${about.imageUrl}" style="width: 100%; height: auto; object-fit: cover; border-radius: 1rem; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); position: relative;"/></div>` : ''}</div><div style="margin-top: 4rem; text-align: center;"><a href="index.html" style="color: ${brandColor}; font-weight: 600;">← Retour</a></div></div>${getFooterHtml(meta)}</body></html>`;
@@ -159,11 +181,8 @@ function generateTestimonialsPage(config: SiteConfig): string {
   return `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>Avis - ${meta.siteName}</title><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">${getSeoHead(meta, "Avis")}${getStyles()}</head><body style="background-color: ${theme.globalBgColor || '#fff'};">${getNavbarHtml(config, 'testimonials')}<div class="container" style="padding: 6rem 1.5rem;"><h1 style="font-size: 3rem; font-weight: 800; margin-bottom: 4rem; text-align: center; color: ${theme.featureTitleColor || '#111'};">${testimonials.title}</h1><div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 2rem; max-width: 1000px; margin: 0 auto;">${avisHtml}</div><div style="text-align: center; margin-top: 4rem;"><a href="index.html" style="color: ${brandColor}; font-weight: 600;">← Retour</a></div></div>${getFooterHtml(meta)}</body></html>`;
 }
 
-// CORRECTION BLOG : Page liste avec liens cliquables
 function generateBlogPage(config: SiteConfig): string {
   const { meta } = config; const blog = config.sections.find(s => s.type === 'blog')?.data || { title: "Blog", items: [] }; const theme = meta.theme; const brandColor = theme?.brandColor || theme?.primaryColor;
-  
-  // On ajoute un lien <a> autour de la carte
   const postsHtml = (blog.items || []).map((item: any, index: number) => `
     <a href="blog-${index + 1}.html" style="text-decoration: none; color: inherit;">
       <article class="card" style="cursor: pointer; height: 100%;">
@@ -182,7 +201,6 @@ function generateBlogPage(config: SiteConfig): string {
   return `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>Blog - ${meta.siteName}</title><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">${getSeoHead(meta, "Blog")}${getStyles()}</head><body>${getNavbarHtml(config, 'blog')}<div class="container" style="padding: 6rem 1.5rem;"><h1 style="font-size: 3rem; font-weight: 800; margin-bottom: 4rem; text-align: center; color: ${theme.featureTitleColor || '#111'};">${blog.title}</h1><div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 2rem;">${postsHtml}</div><div style="text-align: center; margin-top: 4rem;"><a href="index.html" style="color: ${brandColor}; font-weight: 600;">← Retour</a></div></div>${getFooterHtml(meta)}</body></html>`;
 }
 
-// NOUVEAU : Générateur de page d'article unique
 function generateBlogPostPage(config: SiteConfig, post: any, index: number): string {
   const { meta } = config;
   const theme = meta.theme;
@@ -198,7 +216,7 @@ function generateContactPage(config: SiteConfig): string {
   return `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>Contact - ${meta.siteName}</title><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">${getSeoHead(meta, "Contact")}${getStyles()}</head><body style="background-color: ${theme.globalBgColor || '#fff'};">${getNavbarHtml(config, 'contact')}<div class="container" style="padding: 6rem 1.5rem; max-width: 700px;"><h1 style="font-size: 3rem; font-weight: 800; margin-bottom: 3rem; text-align: center; color: ${theme.featureTitleColor || '#111'};">Contactez-nous</h1><div class="card" style="padding: 2.5rem;"><form action="https://formsubmit.co/${email}" method="POST"><input type="hidden" name="_captcha" value="false"><input type="hidden" name="_template" value="table"><div style="margin-bottom: 1.5rem;"><label style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem; font-weight: 600;">Nom</label><input type="text" name="name" required style="width: 100%; padding: 0.8rem 1rem; border-radius: 0.5rem; border: 1px solid #e2e8f0; font-size: 1rem;"></div><div style="margin-bottom: 1.5rem;"><label style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem; font-weight: 600;">Email</label><input type="email" name="email" required style="width: 100%; padding: 0.8rem 1rem; border-radius: 0.5rem; border: 1px solid #e2e8f0; font-size: 1rem;"></div><div style="margin-bottom: 2rem;"><label style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem; font-weight: 600;">Message</label><textarea name="message" rows="5" required style="width: 100%; padding: 0.8rem 1rem; border-radius: 0.5rem; border: 1px solid #e2e8f0; font-size: 1rem; resize: vertical;"></textarea></div><button type="submit" class="btn-primary" style="width: 100%; background-color: ${theme.featureTitleColor || '#111'};">Envoyer</button></form></div></div>${getFooterHtml(meta)}</body></html>`;
 }
 
-// MISE A JOUR : Génération des fichiers
+// MISE A JOUR : Génération des fichiers (Services ajoutés)
 export function generateSiteFiles(config: SiteConfig): Record<string, string> {
   const files: Record<string, string> = {
     'index.html': generateHomePage(config),
@@ -212,11 +230,19 @@ export function generateSiteFiles(config: SiteConfig): Record<string, string> {
     'README.md': generateReadme(config)
   };
 
-  // Ajout dynamique des pages d'articles de blog
+  // Génération des pages Blog
   const blogSection = config.sections.find(s => s.type === 'blog');
   if (blogSection && blogSection.data.items) {
     blogSection.data.items.forEach((item: any, index: number) => {
       files[`blog-${index + 1}.html`] = generateBlogPostPage(config, item, index);
+    });
+  }
+
+  // NOUVEAU : Génération des pages Services
+  const featuresSection = config.sections.find(s => s.type === 'features');
+  if (featuresSection && featuresSection.data.items) {
+    featuresSection.data.items.forEach((item: any, index: number) => {
+      files[`service-${index + 1}.html`] = generateServicePage(config, item, index);
     });
   }
 
