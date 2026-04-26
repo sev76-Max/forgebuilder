@@ -56,6 +56,7 @@ function getStyles() {
   return `<style>html{scroll-behavior:smooth}body{font-family:'Inter',sans-serif;margin:0;color:#1a202c;-webkit-font-smoothing:antialiased;line-height:1.6;background-color:#fff}*,::before,::after{box-sizing:border-box}a{text-decoration:none;color:inherit}img{max-width:100%;height:auto;display:block}h1,h2,h3{line-height:1.2;font-weight:800;letter-spacing:-0.02em}.container{max-width:1200px;margin:0 auto;padding:0 1.5rem}.section{padding:6rem 0}.btn-primary{display:inline-flex;align-items:center;justify-content:center;padding:1rem 2.5rem;border-radius:9999px;color:white;font-weight:700;font-size:1.1rem;transition:all .3s ease;box-shadow:0 4px 14px 0 rgba(0,0,0,.25)}.btn-primary:hover{transform:translateY(-2px);box-shadow:0 6px 20px 0 rgba(0,0,0,.3)}.card{background:white;border-radius:1rem;overflow:hidden;transition:all .3s ease;border:1px solid rgba(0,0,0,.05);box-shadow:0 4px 6px -1px rgba(0,0,0,.05)}.card:hover{transform:translateY(-5px);box-shadow:0 20px 25px -5px rgba(0,0,0,.1)}.nav-toggle{display:none}.hamburger{display:none;flex-direction:column;justify-content:space-around;width:2.5rem;height:2.5rem;cursor:pointer;z-index:100}.hamburger span{width:2.5rem;height:.2rem;background:#333;border-radius:10px;transition:all .3s linear;position:relative;transform-origin:1px}@media(max-width:768px){.hamburger{display:flex}.nav-links{position:absolute;top:0;right:0;height:100vh;width:300px;background:white;flex-direction:column;align-items:center;justify-content:flex-start;padding-top:100px;gap:2rem;box-shadow:-5px 0 10px rgba(0,0,0,.1);transform:translateX(100%);transition:transform .3s ease-in-out;z-index:90;display:flex}.nav-toggle:checked~.nav-links{transform:translateX(0)}.nav-toggle:checked~.hamburger span:first-child{transform:rotate(45deg)}.nav-toggle:checked~.hamburger span:nth-child(2){opacity:0}.nav-toggle:checked~.hamburger span:last-child{transform:rotate(-45deg)}.nav-links a{font-size:1.2rem;color:#111!important}.section{padding:4rem 0}}</style>`;
 }
 
+// CORRECTION MAJEURE ICI : Navbar intelligente
 function getNavbarHtml(config: SiteConfig, activePage: string = 'home') {
   const meta = config.meta;
   const brandColor = meta?.theme?.brandColor || meta?.theme?.primaryColor || "#F97316";
@@ -63,7 +64,16 @@ function getNavbarHtml(config: SiteConfig, activePage: string = 'home') {
   const linkStyle = 'font-size: 0.95rem; color: #4a5568; text-decoration: none; transition: color 0.2s; font-weight: 500;';
   const activeStyle = 'font-weight: 700; color: #111827;';
   const servicesLink = activePage === 'home' ? '#services' : 'index.html#services';
-  return `<nav style="position: fixed; top: 0; left: 0; right: 0; z-index: 50; background: rgba(255,255,255,0.98); backdrop-filter: blur(10px); box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05);"><div class="container" style="display: flex; justify-content: space-between; align-items: center; height: 80px; position: relative;">${logoHtml}<label for="nav-toggle" class="hamburger"><span></span><span></span><span></span></label><input type="checkbox" id="nav-toggle" class="nav-toggle"><div class="nav-links" style="display: flex; align-items: center; gap: 2rem;"><a href="index.html" style="${linkStyle} ${activePage === 'home' ? activeStyle : ''}">Accueil</a><a href="${servicesLink}" style="${linkStyle} ${activePage === 'services' ? activeStyle : ''}">Services</a><a href="about.html" style="${linkStyle} ${activePage === 'about' ? activeStyle : ''}">À Propos</a><a href="testimonials.html" style="${linkStyle} ${activePage === 'testimonials' ? activeStyle : ''}">Avis</a><a href="blog.html" style="${linkStyle} ${activePage === 'blog' ? activeStyle : ''}">Blog</a><a href="contact.html" class="btn-primary" style="padding: 0.6rem 1.2rem; font-size: 0.9rem; background-color: ${brandColor};">Contact</a></div></div></nav><div style="height: 80px;"></div>`;
+
+  // NOUVEAU : Logique pour le bouton "Contact" de la Navbar
+  const heroLink = config.sections.find(s => s.type === 'hero')?.data?.ctaLink;
+  const isExternalAction = heroLink && (heroLink.startsWith('tel:') || heroLink.startsWith('mailto:') || heroLink.startsWith('https://wa.me'));
+  
+  // Si le bouton Hero est un lien direct (WhatsApp/Tel), le bouton Navbar fait pareil. Sinon il va sur contact.html
+  const navContactHref = isExternalAction ? heroLink : 'contact.html';
+  const navContactTarget = isExternalAction ? '_blank' : '_self';
+
+  return `<nav style="position: fixed; top: 0; left: 0; right: 0; z-index: 50; background: rgba(255,255,255,0.98); backdrop-filter: blur(10px); box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05);"><div class="container" style="display: flex; justify-content: space-between; align-items: center; height: 80px; position: relative;">${logoHtml}<label for="nav-toggle" class="hamburger"><span></span><span></span><span></span></label><input type="checkbox" id="nav-toggle" class="nav-toggle"><div class="nav-links" style="display: flex; align-items: center; gap: 2rem;"><a href="index.html" style="${linkStyle} ${activePage === 'home' ? activeStyle : ''}">Accueil</a><a href="${servicesLink}" style="${linkStyle} ${activePage === 'services' ? activeStyle : ''}">Services</a><a href="about.html" style="${linkStyle} ${activePage === 'about' ? activeStyle : ''}">À Propos</a><a href="testimonials.html" style="${linkStyle} ${activePage === 'testimonials' ? activeStyle : ''}">Avis</a><a href="blog.html" style="${linkStyle} ${activePage === 'blog' ? activeStyle : ''}">Blog</a><a href="${navContactHref}" target="${navContactTarget}" class="btn-primary" style="padding: 0.6rem 1.2rem; font-size: 0.9rem; background-color: ${brandColor};">Contact</a></div></div></nav><div style="height: 80px;"></div>`;
 }
 
 function getFooterHtml(meta: any) {
@@ -96,9 +106,8 @@ function generateHomePage(config: SiteConfig): string {
   const features = sections.find(s => s.type === 'features')?.data || { title: "Services", items: [] };
   const products = sections.find(s => s.type === 'products')?.data || null;
 
-  // NOUVEAU : Logique WhatsApp
+  // NOUVEAU : Logique WhatsApp pour les produits
   const rawPhone = meta.phone || "";
-  // Nettoyage du numéro (enlève les espaces, tirets, etc.) pour l'URL WhatsApp
   const cleanPhone = rawPhone.replace(/\D/g, '');
 
   const servicesHtml = (features.items || []).map((item: any) => `<div class="card" style="padding: 2rem; text-align: center;"><div style="width: 60px; height: 60px; background: linear-gradient(135deg, ${brandColor}22, ${brandColor}11); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem; font-size: 1.5rem; color: ${brandColor}; font-weight: bold;">${(item.title || 'S').charAt(0)}</div><h3 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 0.5rem; color: ${fTitleColor};">${item.title}</h3><p style="color: ${fDescColor}; font-size: 0.95rem;">${item.description}</p></div>`).join('');
@@ -111,15 +120,13 @@ function generateHomePage(config: SiteConfig): string {
           <h2 style="text-align: center; font-size: 2.5rem; font-weight: 800; margin-bottom: 4rem; color: ${fTitleColor};">${products.title || "Nos Produits"}</h2>
           <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 2rem;">
             ${products.items.map((item: any) => {
-              // Définition du lien d'achat
               let btnLink = "contact.html";
               let btnTarget = "_self";
               
               if (cleanPhone) {
-                // Message pré-rempli
                 const message = encodeURIComponent(`Bonjour, je suis intéressé(e) par le produit : ${item.title}`);
                 btnLink = `https://wa.me/${cleanPhone}?text=${message}`;
-                btnTarget = "_blank"; // Ouvre WhatsApp dans un nouvel onglet/app
+                btnTarget = "_blank";
               }
 
               return `
@@ -142,8 +149,11 @@ function generateHomePage(config: SiteConfig): string {
     `;
   }
 
-  // CORRECTION ICI : Utilisation de hero.ctaLink au lieu de "contact.html"
-  return `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>${meta.siteName}</title><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">${getSeoHead(meta, "", hero.imageUrl)}${getStyles()}</head><body>${getNavbarHtml(config, 'home')}<section style="position: relative; min-height: 85vh; display: flex; align-items: center; justify-content: center; background-color: #000; overflow: hidden;"><img src="${hero.imageUrl}" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.5; transform: scale(1.05);" /><div style="position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.7) 100%);"></div><div class="container" style="position: relative; z-index: 10; text-align: center; padding: 2rem;"><h1 style="font-size: clamp(2.5rem, 5vw, 4.5rem); font-weight: 800; margin-bottom: 1.5rem; color: ${theme.textColor || '#fff'}; letter-spacing: -0.03em;">${hero.headline}</h1><p style="font-size: clamp(1rem, 2vw, 1.35rem); margin-bottom: 2.5rem; color: ${theme.secondaryTextColor || '#e5e7eb'}; max-width: 800px; margin-left: auto; margin-right: auto;">${hero.subheadline}</p><a href="${hero.ctaLink || '#'}" class="btn-primary" style="background-color: ${brandColor};">${hero.ctaText}</a></div></section><section id="services" class="section" style="background: #f9fafb;"><div class="container"><h2 style="text-align: center; font-size: 2.5rem; font-weight: 800; margin-bottom: 4rem; color: ${fTitleColor};">${features.title}</h2><div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem;">${servicesHtml}</div></div></section>${productsHtml}<section class="section" style="background: white; text-align: center;"><div class="container"><h2 style="font-size: 2rem; font-weight: 700; margin-bottom: 2rem; color: ${fTitleColor};">Ils nous font confiance</h2><a href="testimonials.html" class="btn-primary" style="background-color: ${fTitleColor}; font-size: 0.95rem; padding: 0.8rem 2rem;">Lire les témoignages</a></div></section>${getFooterHtml(meta)}</body></html>`;
+  // Logique pour le bouton Hero (Prendre RDV)
+  const heroHref = hero.ctaLink || '#';
+  const heroTarget = heroHref.startsWith('http') || heroHref.startsWith('tel') || heroHref.startsWith('mailto') ? '_blank' : '_self';
+
+  return `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>${meta.siteName}</title><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">${getSeoHead(meta, "", hero.imageUrl)}${getStyles()}</head><body>${getNavbarHtml(config, 'home')}<section style="position: relative; min-height: 85vh; display: flex; align-items: center; justify-content: center; background-color: #000; overflow: hidden;"><img src="${hero.imageUrl}" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.5; transform: scale(1.05);" /><div style="position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.7) 100%);"></div><div class="container" style="position: relative; z-index: 10; text-align: center; padding: 2rem;"><h1 style="font-size: clamp(2.5rem, 5vw, 4.5rem); font-weight: 800; margin-bottom: 1.5rem; color: ${theme.textColor || '#fff'}; letter-spacing: -0.03em;">${hero.headline}</h1><p style="font-size: clamp(1rem, 2vw, 1.35rem); margin-bottom: 2.5rem; color: ${theme.secondaryTextColor || '#e5e7eb'}; max-width: 800px; margin-left: auto; margin-right: auto;">${hero.subheadline}</p><a href="${heroHref}" target="${heroTarget}" class="btn-primary" style="background-color: ${brandColor};">${hero.ctaText}</a></div></section><section id="services" class="section" style="background: #f9fafb;"><div class="container"><h2 style="text-align: center; font-size: 2.5rem; font-weight: 800; margin-bottom: 4rem; color: ${fTitleColor};">${features.title}</h2><div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem;">${servicesHtml}</div></div></section>${productsHtml}<section class="section" style="background: white; text-align: center;"><div class="container"><h2 style="font-size: 2rem; font-weight: 700; margin-bottom: 2rem; color: ${fTitleColor};">Ils nous font confiance</h2><a href="testimonials.html" class="btn-primary" style="background-color: ${fTitleColor}; font-size: 0.95rem; padding: 0.8rem 2rem;">Lire les témoignages</a></div></section>${getFooterHtml(meta)}</body></html>`;
 }
 
 function generateAboutPage(config: SiteConfig): string {
