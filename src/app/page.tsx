@@ -51,6 +51,34 @@ export default function Home() {
   const updateAddress = (value: string) => setConfig(prev => ({ ...prev, meta: { ...prev.meta, address: value } }));
   const updateHeroLink = (value: string) => setConfig(prev => ({ ...prev, sections: prev.sections.map(s => s.type === 'hero' ? { ...s, data: { ...s.data, ctaLink: value } } : s) }));
   const updateListItem = (type: string, idx: number, key: string, value: any) => setConfig(prev => ({ ...prev, sections: prev.sections.map(s => { if (s.type === type && s.data.items) { const newItems = s.data.items.map((it: any, i: number) => i === idx ? { ...it, [key]: value } : it); return { ...s, data: { ...s.data, items: newItems } }; } return s; }) }));
+  
+  // NOUVEAU : Fonctions pour gérer les produits
+  const addProduct = () => {
+    setConfig(prev => ({
+      ...prev,
+      sections: prev.sections.map(s => {
+        if (s.type === 'products') {
+          const newItems = [...(s.data.items || []), { title: "Nouveau Produit", price: "10 000 FCFA", description: "Description du produit", imageUrl: "" }];
+          return { ...s, data: { ...s.data, items: newItems } };
+        }
+        return s;
+      })
+    }));
+  };
+
+  const removeProduct = (idx: number) => {
+    setConfig(prev => ({
+      ...prev,
+      sections: prev.sections.map(s => {
+        if (s.type === 'products' && s.data.items) {
+          const newItems = s.data.items.filter((_: any, i: number) => i !== idx);
+          return { ...s, data: { ...s.data, items: newItems } };
+        }
+        return s;
+      })
+    }));
+  };
+
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, sectionType: string, itemIndex?: number) => {
     const file = e.target.files?.[0]; if (!file) return;
     const reader = new FileReader();
@@ -178,6 +206,26 @@ export default function Home() {
                 </div>
               ))}
             </div>
+
+            {/* SECTION PRODUITS (NOUVEAU) */}
+            {config.sections.find(s => s.type === 'products') && (
+              <div className="border border-amber-700 bg-amber-900/20 rounded-lg p-4 space-y-2">
+                <h3 className="text-md font-semibold text-amber-400 uppercase">🛍️ Produits</h3>
+                {config.sections.find(s => s.type === 'products')?.data?.items?.map((item: any, idx: number) => (
+                  <div key={idx} className="border border-gray-700 p-2 rounded space-y-1 bg-gray-800/50 relative">
+                    <button onClick={() => removeProduct(idx)} className="absolute top-1 right-1 text-red-400 hover:text-red-300 text-xs p-1 hover:bg-red-900/50 rounded">×</button>
+                    <input type="text" value={item.title || ""} onChange={(e) => updateListItem('products', idx, 'title', e.target.value)} placeholder="Nom du produit" className="w-full bg-gray-700 rounded px-2 py-1 text-xs" />
+                    <input type="text" value={item.price || ""} onChange={(e) => updateListItem('products', idx, 'price', e.target.value)} placeholder="Prix (ex: 15 000 FCFA)" className="w-full bg-gray-700 rounded px-2 py-1 text-xs" />
+                    <textarea value={item.description || ""} onChange={(e) => updateListItem('products', idx, 'description', e.target.value)} placeholder="Description" rows={2} className="w-full bg-gray-700 rounded px-2 py-1 text-xs" />
+                    <div className="space-y-1">
+                        <label className="text-xs text-gray-400">Image du produit</label>
+                        <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, 'products', idx)} className="w-full text-xs text-gray-400 file:mr-4 file:py-1 file:px-2 file:rounded-full file:border-0 file:text-xs file:bg-amber-50 file:text-amber-700 cursor-pointer" />
+                    </div>
+                  </div>
+                ))}
+                <button onClick={addProduct} className="w-full mt-2 p-2 bg-amber-600 hover:bg-amber-700 rounded text-xs font-bold transition-colors">+ Ajouter un produit</button>
+              </div>
+            )}
 
             {/* SECTION 4 : TÉMOIGNAGES */}
             {config.sections.find(s => s.type === 'testimonials') && (
