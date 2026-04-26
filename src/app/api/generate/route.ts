@@ -11,8 +11,12 @@ const client = new OpenAI({
 });
 
 // --- 1. DICTIONNAIRE DE MOTS-CLÉS PAR SECTEUR ---
-// Cela aide l'IA à trouver l'inspiration si le prompt est court
 const SECTOR_KEYWORDS: Record<string, { keywords: string[], image: string }> = {
+  // NOUVEAU : Secteur Boutique
+  boutique: { 
+    keywords: ["Nouveautés", "Promotions", "Livraison", "Stock limité", "Mode", "Qualité"], 
+    image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=1470&q=100" 
+  },
   restaurant: { 
     keywords: ["Menu", "Chef", "Saveurs", "Réservation", "Ambiance", "Cuisine locale", "Carte des vins"], 
     image: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=3840&q=100" 
@@ -43,8 +47,18 @@ const SECTOR_KEYWORDS: Record<string, { keywords: string[], image: string }> = {
   }
 };
 
+// Images par défaut pour les produits (fiables)
+const PRODUCT_PLACEHOLDERS = [
+  "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=600&q=80",
+  "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=600&q=80",
+  "https://images.unsplash.com/photo-1572635196237-14b3f281503f?auto=format&fit=crop&w=600&q=80",
+  "https://images.unsplash.com/photo-1560343090-f0409e92791a?auto=format&fit=crop&w=600&q=80"
+];
+
 function getSectorContext(prompt: string) {
   const p = prompt.toLowerCase();
+  // NOUVEAU : Détection Boutique
+  if (p.includes("boutique") || p.includes("shop") || p.includes("e-commerce") || p.includes("vendeur") || p.includes("magasin") || p.includes("vêtements")) return "boutique";
   if (p.includes("restaurant") || p.includes("sushi") || p.includes("café") || p.includes("pizza") || p.includes("traiteur")) return "restaurant";
   if (p.includes("sport") || p.includes("gym") || p.includes("fitness") || p.includes("coaching")) return "sport";
   if (p.includes("médecin") || p.includes("dentiste") || p.includes("clinique") || p.includes("santé")) return "sante";
@@ -64,30 +78,36 @@ export async function POST(req: Request) {
     const sector = getSectorContext(prompt);
     const context = SECTOR_KEYWORDS[sector];
 
-    // --- 2. PROMPT STRICTION & CREATIVITÉ ---
-    // On utilise le modèle 70B beaucoup plus performant
+    // --- 2. PROMPT AVEC INSTRUCTIONS SPÉCIALES BOUTIQUE ---
+    let systemContent = `Tu es un copywriter marketing expert pour le secteur : "${sector}".
+    INTERDICTION ABSOLUE d'utiliser des termes génériques comme "Service 1", "Qualité", "Expertise".
+    Tu DOIS utiliser des termes spécifiques METIERS.
+    
+    Mots-clés recommandés pour ce secteur : ${context.keywords.join(', ')}.
+    
+    RÈGLES JSON :
+    - hero.headline : Un titre percutant (max 6 mots).
+    - testimonials.items : 3 avis clients réalistes avec prénoms français.
+    - about.content : 2 phrases sur les valeurs de l'entreprise.`;
+
+    // INJECTION DES RÈGLES BOUTIQUE
+    if (sector === 'boutique') {
+      systemContent += `
+      RÈGLE SPÉCIALE BOUTIQUE:
+      - Remplace la section "features" par une section "products".
+      - "products" doit avoir un titre (ex: "Nos Meilleures Ventes") et un tableau "items".
+      - Chaque item de "products" DOIT avoir : title, price (ex: "15 000 FCFA"), description (courte), imageUrl (laisser vide "").
+      - Invente 4 produits cohérents avec le prompt.`;
+    } else {
+      systemContent += `
+      - features.items : 3 services RÉELS (ex: "Menu Dégustation" pour un resto).`;
+    }
+
     const completion = await client.chat.completions.create({
       messages: [
-        { 
-          role: "system", 
-          content: `Tu es un copywriter marketing expert pour le secteur : "${sector}".
-          INTERDICTION ABSOLUE d'utiliser des termes génériques comme "Service 1", "Qualité", "Expertise".
-          Tu DOIS utiliser des termes spécifiques METIERS.
-          
-          Mots-clés recommandés pour ce secteur : ${context.keywords.join(', ')}.
-          
-          RÈGLES JSON :
-          - hero.headline : Un titre percutant (max 6 mots).
-          - features.items : 3 services RÉELS (ex: "Menu Dégustation" pour un resto, "Musculation Guidée" pour un sportif).
-          - testimonials.items : 3 avis clients réalistes avec prénoms français.
-          - about.content : 2 phrases sur les valeurs de l'entreprise.
-          
-          Réponds UNIQUEMENT par le JSON valide.
-          ` 
-        },
+        { role: "system", content: systemContent },
         { role: "user", content: `Crée le contenu JSON complet pour l'entreprise : "${prompt}"` }
       ],
-      // Modèle plus intelligent pour éviter la paresse
       model: "llama-3.3-70b-versatile", 
       response_format: { type: "json_object" },
     });
@@ -100,7 +120,7 @@ export async function POST(req: Request) {
       console.error("Parsing error", e);
     }
 
-    // --- 3. NETTOYAGE ET SÉCURISATION (CONTEXTUEL) ---
+    // --- 3. NETTOYAGE ET SÉCURISATION ---
 
     if (!jsonConfig.meta) jsonConfig.meta = {};
     if (!jsonConfig.meta.theme) jsonConfig.meta.theme = {};
@@ -125,23 +145,49 @@ export async function POST(req: Request) {
         type: 'about', 
         data: { 
           title: "Notre Histoire", 
-          content: `Depuis notre création, nous mettons tout en œuvre pour offrir les meilleurs services en tant que ${prompt}. Notre équipe passionnée vous accueille dans une ambiance ${sector === 'restaurant' ? 'gourmande' : 'professionnelle'}.`, 
+          content: `Depuis notre création, nous mettons tout en œuvre pour offrir les meilleurs services en tant que ${prompt}. Notre équipe passionnée vous accueille dans une ambiance professionnelle.`, 
           imageUrl: context.image 
         } 
       });
     }
 
-    // 3. Features (INJECTION CONTEXTUELLE SI BESOIN)
-    let fIdx = jsonConfig.sections.findIndex((s: any) => s.type === 'features');
-    if (fIdx === -1) { jsonConfig.sections.push({ type: 'features', data: { title: "Nos Offres", items: [] } }); fIdx = jsonConfig.sections.length - 1; }
-    
-    // Si l'IA a été paresseuse (ex: titre = "Service 1"), on force avec le dictionnaire
-    if (!jsonConfig.sections[fIdx].data.items || jsonConfig.sections[fIdx].data.items.length < 3 || jsonConfig.sections[fIdx].data.items[0]?.title?.includes("Service")) {
-      jsonConfig.sections[fIdx].data.items = context.keywords.slice(0, 3).map((kw, i) => ({
-        icon: ["Zap", "Shield", "Heart"][i],
-        title: kw,
-        description: `Découvrez notre approche unique en matière de ${kw.toLowerCase()}.`
+    // 3. LOGIQUE BOUTIQUE VS SERVICES
+    if (sector === 'boutique') {
+      // Cas Boutique : On force la section Products
+      let pIdx = jsonConfig.sections.findIndex((s: any) => s.type === 'products');
+      if (pIdx === -1) { 
+        jsonConfig.sections.push({ type: 'products', data: { title: "Nos Produits", items: [] } }); 
+        pIdx = jsonConfig.sections.length - 1; 
+      }
+      
+      // Nettoyage des produits (Images + Prix)
+      if (!jsonConfig.sections[pIdx].data.items || jsonConfig.sections[pIdx].data.items.length === 0) {
+        // Fallback si l'IA oublie de créer les produits
+        jsonConfig.sections[pIdx].data.items = [
+          { title: "Produit Phare", price: "10 000 FCFA", description: "Qualité supérieure." },
+          { title: "Offre Spéciale", price: "25 000 FCFA", description: "Le préféré des clients." }
+        ];
+      }
+
+      // On assigne des images correctes aux produits
+      jsonConfig.sections[pIdx].data.items = jsonConfig.sections[pIdx].data.items.map((item: any, i: number) => ({
+        ...item,
+        price: item.price || "Prix sur demande",
+        imageUrl: item.imageUrl || PRODUCT_PLACEHOLDERS[i % PRODUCT_PLACEHOLDERS.length] // On force une image valide
       }));
+
+    } else {
+      // Cas Classique : On force la section Features
+      let fIdx = jsonConfig.sections.findIndex((s: any) => s.type === 'features');
+      if (fIdx === -1) { jsonConfig.sections.push({ type: 'features', data: { title: "Nos Offres", items: [] } }); fIdx = jsonConfig.sections.length - 1; }
+      
+      if (!jsonConfig.sections[fIdx].data.items || jsonConfig.sections[fIdx].data.items.length < 3 || jsonConfig.sections[fIdx].data.items[0]?.title?.includes("Service")) {
+        jsonConfig.sections[fIdx].data.items = context.keywords.slice(0, 3).map((kw, i) => ({
+          icon: ["Zap", "Shield", "Heart"][i],
+          title: kw,
+          description: `Découvrez notre approche unique en matière de ${kw.toLowerCase()}.`
+        }));
+      }
     }
 
     // 4. Testimonials
@@ -149,13 +195,13 @@ export async function POST(req: Request) {
     if (tIdx === -1) { jsonConfig.sections.push({ type: 'testimonials', data: { title: "Avis Clients", items: [] } }); tIdx = jsonConfig.sections.length - 1; }
     if (!jsonConfig.sections[tIdx].data.items || jsonConfig.sections[tIdx].data.items.length === 0) {
       jsonConfig.sections[tIdx].data.items = [
-        { author: "Marie D.", role: "Cliente", quote: `Une expérience incroyable pour ${prompt}, je recommande !` },
+        { author: "Marie D.", role: "Cliente", quote: `Une expérience incroyable, je recommande !` },
         { author: "Paul L.", role: "Client", quote: "Très professionnel et à l'écoute." },
         { author: "Sophie M.", role: "Cliente", quote: "Exactement ce que je cherchais." }
       ];
     }
 
-    // 5. Blog
+    // 5. Blog & Footer
     if (!jsonConfig.sections.some((s: any) => s.type === 'blog')) {
       const d = new Date().toLocaleDateString('fr-FR');
       jsonConfig.sections.push({
@@ -164,14 +210,6 @@ export async function POST(req: Request) {
           { title: "Nos conseils", excerpt: "Astuces et conseils pratiques.", imageUrl: context.image, date: d }
         ]}
       });
-    }
-
-    // 6. Newsletter & Contact
-    if (!jsonConfig.sections.some((s: any) => s.type === 'newsletter')) {
-      jsonConfig.sections.push({ type: 'newsletter', data: { title: "Newsletter", subtitle: "Recevez nos actualités." } });
-    }
-    if (!jsonConfig.sections.some((s: any) => s.type === 'contact_form')) {
-      jsonConfig.sections.push({ type: 'contact_form', data: {} });
     }
     if (!jsonConfig.sections.some((s: any) => s.type === 'footer')) {
       jsonConfig.sections.push({ type: 'footer', data: {} });
