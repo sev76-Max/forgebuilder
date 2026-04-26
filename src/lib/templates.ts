@@ -162,7 +162,8 @@ export const TEMPLATES: Template[] = [
         phone: "",
         address: "Station F, Paris",
         contactEmail: "contact@technova.io",
-        theme: { primaryColor: "#6366f1", fontFamily: "Inter", brandColor: "#6366f1", logoColor: "#6366f1", textColor: "#0f172a", secondaryTextColor: "#94a3b8", featureTitleColor: "#0f172a", featureDescColor: "#475569", globalBgColor: "#0f172a", layoutStyle: "dark" }
+        // CORRECTION: suppression de layoutStyle
+        theme: { primaryColor: "#6366f1", fontFamily: "Inter", brandColor: "#6366f1", logoColor: "#6366f1", textColor: "#0f172a", secondaryTextColor: "#94a3b8", featureTitleColor: "#0f172a", featureDescColor: "#475569", globalBgColor: "#0f172a" }
       },
       sections: [
         { type: 'hero', data: { headline: "L'Innovation Commence Ici", subheadline: "Automatisez vos processus avec notre IA nouvelle génération. Gagnez des heures par semaine.", ctaText: "Essai Gratuit 14j", ctaLink: "#contact", imageUrl: "https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=1920&q=80" } },
