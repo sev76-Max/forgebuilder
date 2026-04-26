@@ -94,14 +94,15 @@ function generateHomePage(config: SiteConfig): string {
   
   const hero = sections.find(s => s.type === 'hero')?.data || {};
   const features = sections.find(s => s.type === 'features')?.data || { title: "Services", items: [] };
-  
-  // NOUVEAU : Récupération des données produits
   const products = sections.find(s => s.type === 'products')?.data || null;
 
-  // Génération HTML des services
+  // NOUVEAU : Logique WhatsApp
+  const rawPhone = meta.phone || "";
+  // Nettoyage du numéro (enlève les espaces, tirets, etc.) pour l'URL WhatsApp
+  const cleanPhone = rawPhone.replace(/\D/g, '');
+
   const servicesHtml = (features.items || []).map((item: any) => `<div class="card" style="padding: 2rem; text-align: center;"><div style="width: 60px; height: 60px; background: linear-gradient(135deg, ${brandColor}22, ${brandColor}11); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem; font-size: 1.5rem; color: ${brandColor}; font-weight: bold;">${(item.title || 'S').charAt(0)}</div><h3 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 0.5rem; color: ${fTitleColor};">${item.title}</h3><p style="color: ${fDescColor}; font-size: 0.95rem;">${item.description}</p></div>`).join('');
 
-  // NOUVEAU : Génération HTML des produits
   let productsHtml = '';
   if (products && products.items) {
     productsHtml = `
@@ -109,26 +110,38 @@ function generateHomePage(config: SiteConfig): string {
         <div class="container">
           <h2 style="text-align: center; font-size: 2.5rem; font-weight: 800; margin-bottom: 4rem; color: ${fTitleColor};">${products.title || "Nos Produits"}</h2>
           <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 2rem;">
-            ${products.items.map((item: any) => `
-              <div class="card" style="padding: 0; overflow: hidden;">
-                <img src="${item.imageUrl}" style="width: 100%; height: 250px; object-fit: cover;" alt="${item.title}"/>
-                <div style="padding: 1.5rem;">
-                  <h3 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 0.5rem; color: ${fTitleColor};">${item.title}</h3>
-                  <p style="color: ${fDescColor}; font-size: 0.9rem; margin-bottom: 1rem;">${item.description}</p>
-                  <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <span style="font-size: 1.25rem; font-weight: 800; color: ${brandColor};">${item.price}</span>
-                    <button style="padding: 0.5rem 1rem; background-color: ${brandColor}; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer;">Acheter</button>
+            ${products.items.map((item: any) => {
+              // Définition du lien d'achat
+              let btnLink = "contact.html";
+              let btnTarget = "_self";
+              
+              if (cleanPhone) {
+                // Message pré-rempli
+                const message = encodeURIComponent(`Bonjour, je suis intéressé(e) par le produit : ${item.title}`);
+                btnLink = `https://wa.me/${cleanPhone}?text=${message}`;
+                btnTarget = "_blank"; // Ouvre WhatsApp dans un nouvel onglet/app
+              }
+
+              return `
+                <div class="card" style="padding: 0; overflow: hidden;">
+                  <img src="${item.imageUrl}" style="width: 100%; height: 250px; object-fit: cover;" alt="${item.title}"/>
+                  <div style="padding: 1.5rem;">
+                    <h3 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 0.5rem; color: ${fTitleColor};">${item.title}</h3>
+                    <p style="color: ${fDescColor}; font-size: 0.9rem; margin-bottom: 1rem;">${item.description}</p>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                      <span style="font-size: 1.25rem; font-weight: 800; color: ${brandColor};">${item.price}</span>
+                      <a href="${btnLink}" target="${btnTarget}" style="padding: 0.5rem 1rem; background-color: ${brandColor}; color: white; border: none; border-radius: 6px; font-weight: 600; text-decoration: none; display: inline-block; cursor: pointer;">Acheter</a>
+                    </div>
                   </div>
                 </div>
-              </div>
-            `).join('')}
+              `;
+            }).join('')}
           </div>
         </div>
       </section>
     `;
   }
 
-  // Injection de ${productsHtml} dans le template
   return `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>${meta.siteName}</title><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">${getSeoHead(meta, "", hero.imageUrl)}${getStyles()}</head><body>${getNavbarHtml(config, 'home')}<section style="position: relative; min-height: 85vh; display: flex; align-items: center; justify-content: center; background-color: #000; overflow: hidden;"><img src="${hero.imageUrl}" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.5; transform: scale(1.05);" /><div style="position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.7) 100%);"></div><div class="container" style="position: relative; z-index: 10; text-align: center; padding: 2rem;"><h1 style="font-size: clamp(2.5rem, 5vw, 4.5rem); font-weight: 800; margin-bottom: 1.5rem; color: ${theme.textColor || '#fff'}; letter-spacing: -0.03em;">${hero.headline}</h1><p style="font-size: clamp(1rem, 2vw, 1.35rem); margin-bottom: 2.5rem; color: ${theme.secondaryTextColor || '#e5e7eb'}; max-width: 800px; margin-left: auto; margin-right: auto;">${hero.subheadline}</p><a href="contact.html" class="btn-primary" style="background-color: ${brandColor};">${hero.ctaText}</a></div></section><section id="services" class="section" style="background: #f9fafb;"><div class="container"><h2 style="text-align: center; font-size: 2.5rem; font-weight: 800; margin-bottom: 4rem; color: ${fTitleColor};">${features.title}</h2><div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem;">${servicesHtml}</div></div></section>${productsHtml}<section class="section" style="background: white; text-align: center;"><div class="container"><h2 style="font-size: 2rem; font-weight: 700; margin-bottom: 2rem; color: ${fTitleColor};">Ils nous font confiance</h2><a href="testimonials.html" class="btn-primary" style="background-color: ${fTitleColor}; font-size: 0.95rem; padding: 0.8rem 2rem;">Lire les témoignages</a></div></section>${getFooterHtml(meta)}</body></html>`;
 }
 
