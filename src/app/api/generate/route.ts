@@ -90,14 +90,14 @@ export async function POST(req: Request) {
     - testimonials.items : 3 avis clients réalistes avec prénoms français.
     - about.content : 2 phrases sur les valeurs de l'entreprise.`;
 
-    // INJECTION DES RÈGLES BOUTIQUE
+    // INJECTION DES RÈGLES BOUTIQUE (MODIFIÉ POUR 8 PRODUITS)
     if (sector === 'boutique') {
       systemContent += `
       RÈGLE SPÉCIALE BOUTIQUE:
       - Remplace la section "features" par une section "products".
       - "products" doit avoir un titre (ex: "Nos Meilleures Ventes") et un tableau "items".
       - Chaque item de "products" DOIT avoir : title, price (ex: "15 000 FCFA"), description (courte), imageUrl (laisser vide "").
-      - Invente 4 produits cohérents avec le prompt.`;
+      - Invente exactement 8 produits cohérents avec le prompt.`;
     } else {
       systemContent += `
       - features.items : 3 services RÉELS (ex: "Menu Dégustation" pour un resto).`;
@@ -162,10 +162,16 @@ export async function POST(req: Request) {
       
       // Nettoyage des produits (Images + Prix)
       if (!jsonConfig.sections[pIdx].data.items || jsonConfig.sections[pIdx].data.items.length === 0) {
-        // Fallback si l'IA oublie de créer les produits
+        // Fallback si l'IA oublie de créer les produits (on en met 8 par défaut ici aussi)
         jsonConfig.sections[pIdx].data.items = [
-          { title: "Produit Phare", price: "10 000 FCFA", description: "Qualité supérieure." },
-          { title: "Offre Spéciale", price: "25 000 FCFA", description: "Le préféré des clients." }
+          { title: "Produit 1", price: "10 000 FCFA", description: "Description..." },
+          { title: "Produit 2", price: "15 000 FCFA", description: "Description..." },
+          { title: "Produit 3", price: "20 000 FCFA", description: "Description..." },
+          { title: "Produit 4", price: "25 000 FCFA", description: "Description..." },
+          { title: "Produit 5", price: "30 000 FCFA", description: "Description..." },
+          { title: "Produit 6", price: "35 000 FCFA", description: "Description..." },
+          { title: "Produit 7", price: "40 000 FCFA", description: "Description..." },
+          { title: "Produit 8", price: "45 000 FCFA", description: "Description..." }
         ];
       }
 

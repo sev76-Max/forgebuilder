@@ -28,7 +28,7 @@ const templates: Record<string, Partial<SiteConfig>> = {
       { type: 'footer', data: {} }
     ]
   },
-  // NOUVEAU TEMPLATE BOUTIQUE
+  // TEMPLATE BOUTIQUE MIS A JOUR (8 PRODUITS)
   boutique: {
     meta: { 
       siteName: "Ma Boutique Africaine", 
@@ -45,7 +45,11 @@ const templates: Record<string, Partial<SiteConfig>> = {
             { title: "Robe Wax Premium", price: "25 000 FCFA", imageUrl: "https://images.unsplash.com/photo-1594938298603-c8148c4dae35?auto=format&fit=crop&w=600&q=80", description: "Coton 100% naturel, coupe moderne." },
             { title: "Sac en Cuir Artisanal", price: "25 000 FCFA", imageUrl: "https://images.unsplash.com/photo-1590874103328-eac38a683ce7?auto=format&fit=crop&w=600&q=80", description: "Fabriqué à la main par des artisans locaux." },
             { title: "Bijoux Fantaisie Or", price: "10 000 FCFA", imageUrl: "https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?auto=format&fit=crop&w=600&q=80", description: "Accessoires élégants pour toutes les occasions." },
-            { title: "Tableau Décoratif", price: "45 000 FCFA", imageUrl: "https://images.unsplash.com/photo-1578301978693-85fa9c0320b9?auto=format&fit=crop&w=600&q=80", description: "Peinture abstraite unique." }
+            { title: "Tableau Décoratif", price: "45 000 FCFA", imageUrl: "https://images.unsplash.com/photo-1578301978693-85fa9c0320b9?auto=format&fit=crop&w=600&q=80", description: "Peinture abstraite unique." },
+            { title: "Paire de Sandales", price: "15 000 FCFA", imageUrl: "https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?auto=format&fit=crop&w=600&q=80", description: "Confort et style pour l'été." },
+            { title: "Ensemble Poterie", price: "20 000 FCFA", imageUrl: "https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?auto=format&fit=crop&w=600&q=80", description: "Décoration traditionnelle." },
+            { title: "Écharpe en Bazin", price: "8 000 FCFA", imageUrl: "https://images.unsplash.com/photo-1601924994987-69e26d50dc26?auto=format&fit=crop&w=600&q=80", description: "Tissu noble et coloré." },
+            { title: "Sac Bandoulière", price: "12 000 FCFA", imageUrl: "https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&w=600&q=80", description: "Pratique et tendance." }
           ] 
         } 
       },
@@ -75,9 +79,7 @@ export function generateFromPrompt(prompt: string): SiteConfig {
     selectedTemplate = templates.plombier;
   } else if (lowerPrompt.includes("coach") || lowerPrompt.includes("sport") || lowerPrompt.includes("fitness")) {
     selectedTemplate = templates.coach;
-  } 
-  // NOUVELLE CONDITION
-  else if (lowerPrompt.includes("boutique") || lowerPrompt.includes("shop") || lowerPrompt.includes("vendeur") || lowerPrompt.includes("e-commerce")) {
+  } else if (lowerPrompt.includes("boutique") || lowerPrompt.includes("shop") || lowerPrompt.includes("vendeur") || lowerPrompt.includes("e-commerce")) {
     selectedTemplate = templates.boutique;
   }
 
