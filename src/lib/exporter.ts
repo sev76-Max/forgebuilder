@@ -56,7 +56,6 @@ function getStyles() {
   return `<style>html{scroll-behavior:smooth}body{font-family:'Inter',sans-serif;margin:0;color:#1a202c;-webkit-font-smoothing:antialiased;line-height:1.6;background-color:#fff}*,::before,::after{box-sizing:border-box}a{text-decoration:none;color:inherit}img{max-width:100%;height:auto;display:block}h1,h2,h3{line-height:1.2;font-weight:800;letter-spacing:-0.02em}.container{max-width:1200px;margin:0 auto;padding:0 1.5rem}.section{padding:6rem 0}.btn-primary{display:inline-flex;align-items:center;justify-content:center;padding:1rem 2.5rem;border-radius:9999px;color:white;font-weight:700;font-size:1.1rem;transition:all .3s ease;box-shadow:0 4px 14px 0 rgba(0,0,0,.25)}.btn-primary:hover{transform:translateY(-2px);box-shadow:0 6px 20px 0 rgba(0,0,0,.3)}.card{background:white;border-radius:1rem;overflow:hidden;transition:all .3s ease;border:1px solid rgba(0,0,0,.05);box-shadow:0 4px 6px -1px rgba(0,0,0,.05)}.card:hover{transform:translateY(-5px);box-shadow:0 20px 25px -5px rgba(0,0,0,.1)}.nav-toggle{display:none}.hamburger{display:none;flex-direction:column;justify-content:space-around;width:2.5rem;height:2.5rem;cursor:pointer;z-index:100}.hamburger span{width:2.5rem;height:.2rem;background:#333;border-radius:10px;transition:all .3s linear;position:relative;transform-origin:1px}@media(max-width:768px){.hamburger{display:flex}.nav-links{position:absolute;top:0;right:0;height:100vh;width:300px;background:white;flex-direction:column;align-items:center;justify-content:flex-start;padding-top:100px;gap:2rem;box-shadow:-5px 0 10px rgba(0,0,0,.1);transform:translateX(100%);transition:transform .3s ease-in-out;z-index:90;display:flex}.nav-toggle:checked~.nav-links{transform:translateX(0)}.nav-toggle:checked~.hamburger span:first-child{transform:rotate(45deg)}.nav-toggle:checked~.hamburger span:nth-child(2){opacity:0}.nav-toggle:checked~.hamburger span:last-child{transform:rotate(-45deg)}.nav-links a{font-size:1.2rem;color:#111!important}.section{padding:4rem 0}}</style>`;
 }
 
-// CORRECTION MAJEURE ICI : Navbar intelligente
 function getNavbarHtml(config: SiteConfig, activePage: string = 'home') {
   const meta = config.meta;
   const brandColor = meta?.theme?.brandColor || meta?.theme?.primaryColor || "#F97316";
@@ -65,11 +64,8 @@ function getNavbarHtml(config: SiteConfig, activePage: string = 'home') {
   const activeStyle = 'font-weight: 700; color: #111827;';
   const servicesLink = activePage === 'home' ? '#services' : 'index.html#services';
 
-  // NOUVEAU : Logique pour le bouton "Contact" de la Navbar
   const heroLink = config.sections.find(s => s.type === 'hero')?.data?.ctaLink;
   const isExternalAction = heroLink && (heroLink.startsWith('tel:') || heroLink.startsWith('mailto:') || heroLink.startsWith('https://wa.me'));
-  
-  // Si le bouton Hero est un lien direct (WhatsApp/Tel), le bouton Navbar fait pareil. Sinon il va sur contact.html
   const navContactHref = isExternalAction ? heroLink : 'contact.html';
   const navContactTarget = isExternalAction ? '_blank' : '_self';
 
@@ -106,7 +102,6 @@ function generateHomePage(config: SiteConfig): string {
   const features = sections.find(s => s.type === 'features')?.data || { title: "Services", items: [] };
   const products = sections.find(s => s.type === 'products')?.data || null;
 
-  // NOUVEAU : Logique WhatsApp pour les produits
   const rawPhone = meta.phone || "";
   const cleanPhone = rawPhone.replace(/\D/g, '');
 
@@ -122,13 +117,11 @@ function generateHomePage(config: SiteConfig): string {
             ${products.items.map((item: any) => {
               let btnLink = "contact.html";
               let btnTarget = "_self";
-              
               if (cleanPhone) {
                 const message = encodeURIComponent(`Bonjour, je suis intéressé(e) par le produit : ${item.title}`);
                 btnLink = `https://wa.me/${cleanPhone}?text=${message}`;
                 btnTarget = "_blank";
               }
-
               return `
                 <div class="card" style="padding: 0; overflow: hidden;">
                   <img src="${item.imageUrl}" style="width: 100%; height: 250px; object-fit: cover;" alt="${item.title}"/>
@@ -149,7 +142,6 @@ function generateHomePage(config: SiteConfig): string {
     `;
   }
 
-  // Logique pour le bouton Hero (Prendre RDV)
   const heroHref = hero.ctaLink || '#';
   const heroTarget = heroHref.startsWith('http') || heroHref.startsWith('tel') || heroHref.startsWith('mailto') ? '_blank' : '_self';
 
@@ -167,10 +159,38 @@ function generateTestimonialsPage(config: SiteConfig): string {
   return `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>Avis - ${meta.siteName}</title><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">${getSeoHead(meta, "Avis")}${getStyles()}</head><body style="background-color: ${theme.globalBgColor || '#fff'};">${getNavbarHtml(config, 'testimonials')}<div class="container" style="padding: 6rem 1.5rem;"><h1 style="font-size: 3rem; font-weight: 800; margin-bottom: 4rem; text-align: center; color: ${theme.featureTitleColor || '#111'};">${testimonials.title}</h1><div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 2rem; max-width: 1000px; margin: 0 auto;">${avisHtml}</div><div style="text-align: center; margin-top: 4rem;"><a href="index.html" style="color: ${brandColor}; font-weight: 600;">← Retour</a></div></div>${getFooterHtml(meta)}</body></html>`;
 }
 
+// CORRECTION BLOG : Page liste avec liens cliquables
 function generateBlogPage(config: SiteConfig): string {
   const { meta } = config; const blog = config.sections.find(s => s.type === 'blog')?.data || { title: "Blog", items: [] }; const theme = meta.theme; const brandColor = theme?.brandColor || theme?.primaryColor;
-  const postsHtml = (blog.items || []).map((item: any) => `<article class="card" style="cursor: pointer;"><div style="position: relative; overflow: hidden; height: 240px;"><img src="${item.imageUrl}" style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s ease;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'"/></div><div style="padding: 1.5rem;"><span style="font-size: 0.75rem; color: ${brandColor}; text-transform: uppercase; font-weight: 700;">${item.date || ""}</span><h3 style="font-size: 1.25rem; font-weight: 700; margin: 0.5rem 0; color: ${theme.featureTitleColor || '#111'};">${item.title}</h3><p style="color: ${theme.featureDescColor || '#4b5563'}; font-size: 0.95rem;">${item.excerpt}</p></div></article>`).join('');
+  
+  // On ajoute un lien <a> autour de la carte
+  const postsHtml = (blog.items || []).map((item: any, index: number) => `
+    <a href="blog-${index + 1}.html" style="text-decoration: none; color: inherit;">
+      <article class="card" style="cursor: pointer; height: 100%;">
+        <div style="position: relative; overflow: hidden; height: 240px;">
+          <img src="${item.imageUrl}" style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s ease;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'"/>
+        </div>
+        <div style="padding: 1.5rem;">
+          <span style="font-size: 0.75rem; color: ${brandColor}; text-transform: uppercase; font-weight: 700;">${item.date || ""}</span>
+          <h3 style="font-size: 1.25rem; font-weight: 700; margin: 0.5rem 0; color: ${theme.featureTitleColor || '#111'};">${item.title}</h3>
+          <p style="color: ${theme.featureDescColor || '#4b5563'}; font-size: 0.95rem;">${item.excerpt}</p>
+        </div>
+      </article>
+    </a>
+  `).join('');
+
   return `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>Blog - ${meta.siteName}</title><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">${getSeoHead(meta, "Blog")}${getStyles()}</head><body>${getNavbarHtml(config, 'blog')}<div class="container" style="padding: 6rem 1.5rem;"><h1 style="font-size: 3rem; font-weight: 800; margin-bottom: 4rem; text-align: center; color: ${theme.featureTitleColor || '#111'};">${blog.title}</h1><div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 2rem;">${postsHtml}</div><div style="text-align: center; margin-top: 4rem;"><a href="index.html" style="color: ${brandColor}; font-weight: 600;">← Retour</a></div></div>${getFooterHtml(meta)}</body></html>`;
+}
+
+// NOUVEAU : Générateur de page d'article unique
+function generateBlogPostPage(config: SiteConfig, post: any, index: number): string {
+  const { meta } = config;
+  const theme = meta.theme;
+  const brandColor = theme?.brandColor || theme?.primaryColor;
+  const fTitleColor = theme?.featureTitleColor || "#111827";
+  const fDescColor = theme?.featureDescColor || "#4b5563";
+
+  return `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>${post.title} - ${meta.siteName}</title><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">${getSeoHead(meta, post.title, post.imageUrl)}${getStyles()}</head><body>${getNavbarHtml(config, 'blog')}<div class="container" style="padding: 6rem 1.5rem; max-width: 800px; margin: 0 auto;"><a href="blog.html" style="color: ${brandColor}; font-weight: 600; display: inline-block; margin-bottom: 2rem;">← Retour au blog</a><article><h1 style="font-size: 3rem; font-weight: 800; margin-bottom: 1rem; color: ${fTitleColor}; line-height: 1.1;">${post.title}</h1><p style="font-size: 0.9rem; color: ${brandColor}; margin-bottom: 2rem; text-transform: uppercase;">${post.date || ""}</p><img src="${post.imageUrl}" style="width: 100%; height: auto; border-radius: 1rem; margin-bottom: 2rem; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);"/><div style="font-size: 1.1rem; color: ${fDescColor}; line-height: 1.8;">${post.excerpt}</div></article></div>${getFooterHtml(meta)}</body></html>`;
 }
 
 function generateContactPage(config: SiteConfig): string {
@@ -178,7 +198,29 @@ function generateContactPage(config: SiteConfig): string {
   return `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>Contact - ${meta.siteName}</title><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">${getSeoHead(meta, "Contact")}${getStyles()}</head><body style="background-color: ${theme.globalBgColor || '#fff'};">${getNavbarHtml(config, 'contact')}<div class="container" style="padding: 6rem 1.5rem; max-width: 700px;"><h1 style="font-size: 3rem; font-weight: 800; margin-bottom: 3rem; text-align: center; color: ${theme.featureTitleColor || '#111'};">Contactez-nous</h1><div class="card" style="padding: 2.5rem;"><form action="https://formsubmit.co/${email}" method="POST"><input type="hidden" name="_captcha" value="false"><input type="hidden" name="_template" value="table"><div style="margin-bottom: 1.5rem;"><label style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem; font-weight: 600;">Nom</label><input type="text" name="name" required style="width: 100%; padding: 0.8rem 1rem; border-radius: 0.5rem; border: 1px solid #e2e8f0; font-size: 1rem;"></div><div style="margin-bottom: 1.5rem;"><label style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem; font-weight: 600;">Email</label><input type="email" name="email" required style="width: 100%; padding: 0.8rem 1rem; border-radius: 0.5rem; border: 1px solid #e2e8f0; font-size: 1rem;"></div><div style="margin-bottom: 2rem;"><label style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem; font-weight: 600;">Message</label><textarea name="message" rows="5" required style="width: 100%; padding: 0.8rem 1rem; border-radius: 0.5rem; border: 1px solid #e2e8f0; font-size: 1rem; resize: vertical;"></textarea></div><button type="submit" class="btn-primary" style="width: 100%; background-color: ${theme.featureTitleColor || '#111'};">Envoyer</button></form></div></div>${getFooterHtml(meta)}</body></html>`;
 }
 
+// MISE A JOUR : Génération des fichiers
 export function generateSiteFiles(config: SiteConfig): Record<string, string> {
-  return { 'index.html': generateHomePage(config), 'about.html': generateAboutPage(config), 'testimonials.html': generateTestimonialsPage(config), 'blog.html': generateBlogPage(config), 'contact.html': generateContactPage(config), 'manifest.json': generateManifest(config), 'sw.js': generateServiceWorker(), 'icon.svg': generateIconSvg(config), 'README.md': generateReadme(config) };
+  const files: Record<string, string> = {
+    'index.html': generateHomePage(config),
+    'about.html': generateAboutPage(config),
+    'testimonials.html': generateTestimonialsPage(config),
+    'blog.html': generateBlogPage(config),
+    'contact.html': generateContactPage(config),
+    'manifest.json': generateManifest(config),
+    'sw.js': generateServiceWorker(),
+    'icon.svg': generateIconSvg(config),
+    'README.md': generateReadme(config)
+  };
+
+  // Ajout dynamique des pages d'articles de blog
+  const blogSection = config.sections.find(s => s.type === 'blog');
+  if (blogSection && blogSection.data.items) {
+    blogSection.data.items.forEach((item: any, index: number) => {
+      files[`blog-${index + 1}.html`] = generateBlogPostPage(config, item, index);
+    });
+  }
+
+  return files;
 }
+
 export function generateHtmlFile(config: SiteConfig): string { return generateHomePage(config); }
