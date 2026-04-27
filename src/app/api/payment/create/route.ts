@@ -8,23 +8,21 @@ export async function POST(req: Request) {
     const apiKey = process.env.PAYTECH_API_KEY;
     const secretKey = process.env.PAYTECH_SECRET_KEY;
 
-    // DEBUG: On vérifie si les clés sont chargées
     if (!apiKey || !secretKey) {
       return NextResponse.json({ 
         success: false, 
-        message: "Erreur Serveur : Les clés API PayTech sont introuvables dans les variables d'environnement." 
+        message: "Erreur Serveur : Les clés API PayTech sont introuvables." 
       });
     }
 
-    // Préparation des données pour PayTech
     const paymentData = {
       item_name: "Déploiement Pro ForgeBuilder",
       item_price: amount,
-      command_name: `Commande Pro - ${userId}`,
+      command_name: `CMD-${Date.now()}`,
       ref_command: `REF-${Date.now()}`,
       currency: "XOF",
       lang: "fr",
-      // REMPLACEZ BIEN L'URL CI-DESSOUS PAR VOTRE VRAIE URL VERCEL
+      // REMPLACEZ BIEN PAR VOTRE VRAIE URL VERCEL CI-DESSOUS
       success_url: "https://forgebuilder.vercel.app/?payment=success",
       cancel_url: "https://forgebuilder.vercel.app/?payment=cancel",
     };
@@ -38,15 +36,25 @@ export async function POST(req: Request) {
       body: JSON.stringify(paymentData)
     });
 
-    const data = await response.json();
-
-    // DEBUG: On renvoie le message exact de PayTech si ça échoue
-    if (data.success === 1 && data.redirect_url) {
-      return NextResponse.json({ success: true, paymentUrl: data.redirect_url });
-    } else {
+    // On essaie de lire le texte brut d'abord pour voir l'erreur HTML si ça échoue
+    const textResponse = await response.text();
+    
+    // On essaie de parser en JSON
+    try {
+      const data = JSON.parse(textResponse);
+      if (data.success === 1 && data.redirect_url) {
+        return NextResponse.json({ success: true, paymentUrl: data.redirect_url });
+      } else {
+        return NextResponse.json({ 
+          success: false, 
+          message: "Erreur PayTech : " + (data.message || "Erreur inconnue") 
+        });
+      }
+    } catch (parseError) {
+      // Si ce n'est pas du JSON, c'est que PayTech a renvoyé une page HTML (Erreur serveur ou 404)
       return NextResponse.json({ 
         success: false, 
-        message: "Erreur PayTech : " + (data.message || JSON.stringify(data))
+        message: "PayTech a retourné une erreur inattendue (HTML au lieu de JSON). Réponse : " + textResponse.substring(0, 200) 
       });
     }
 
