@@ -12,7 +12,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ 
         success: false, 
         message: "Erreur Serveur : Les clés API PayTech sont introuvables." 
-      });
+      }, { status: 500 });
     }
 
     const paymentData = {
@@ -22,12 +22,12 @@ export async function POST(req: Request) {
       ref_command: `REF-${Date.now()}`,
       currency: "XOF",
       lang: "fr",
-      env: "test", // IMPORTANT : 'test' pour les tests, 'prod' pour la production
+      env: "test", // Mettre "prod" en production
       success_url: "https://forgebuilder.vercel.app/?payment=success",
       cancel_url: "https://forgebuilder.vercel.app/?payment=cancel",
+      ipn_url: "https://forgebuilder.vercel.app/api/payment/ipn"
     };
 
-    // CORRECTION ICI : On utilise les headers exacts donnés par PayTech
     const response = await fetch('https://paytech.sn/api/payment/request-payment', {
       method: 'POST',
       headers: {
@@ -42,25 +42,33 @@ export async function POST(req: Request) {
     
     try {
       const data = JSON.parse(textResponse);
+      
       if (data.success === 1 && data.redirect_url) {
         return NextResponse.json({ success: true, paymentUrl: data.redirect_url });
       } else {
+        // Cas où PayTech répond mais indique un échec
         return NextResponse.json({ 
           success: false, 
-          message: "Erreur PayTech : " + (data.message || "Erreur inconnue") 
-        });
+          message: data.error || "La requête de paiement a été refusée par PayTech.",
+          details: data
+        }, { status: 400 });
       }
-    } catch (parseError) {
+    } catch (jsonError) {
+      // Cas où la réponse de PayTech n'est pas du JSON valide
+      console.error("Erreur de parsing JSON:", textResponse);
       return NextResponse.json({ 
         success: false, 
-        message: "PayTech a retourné une erreur inattendue. Réponse : " + textResponse.substring(0, 200) 
-      });
+        message: "Réponse invalide reçue de PayTech.",
+        raw: textResponse 
+      }, { status: 500 });
     }
 
-  } catch (error: any) {
+  } catch (error) {
+    // Cas d'une erreur serveur globale (réseau, code, etc.)
+    console.error("Erreur API Payment:", error);
     return NextResponse.json({ 
       success: false, 
-      message: "Erreur interne : " + error.message 
-    });
+      message: "Erreur interne du serveur." 
+    }, { status: 500 });
   }
 }
