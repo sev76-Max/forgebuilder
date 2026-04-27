@@ -22,17 +22,18 @@ export async function POST(req: Request) {
       ref_command: `REF-${Date.now()}`,
       currency: "XOF",
       lang: "fr",
-      // REMPLACEZ BIEN PAR VOTRE VRAIE URL VERCEL CI-DESSOUS
+      env: "test", // IMPORTANT : 'test' pour les tests, 'prod' pour la production
       success_url: "https://forgebuilder.vercel.app/?payment=success",
       cancel_url: "https://forgebuilder.vercel.app/?payment=cancel",
     };
 
-    // CORRECTION FINALE : URL officielle trouvée sur le tableau de bord
-    const response = await fetch('https://paytech.sn/payment/request-payment', {
+    // CORRECTION ICI : On utilise les headers exacts donnés par PayTech
+    const response = await fetch('https://paytech.sn/api/payment/request-payment', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Basic ' + Buffer.from(apiKey + ':' + secretKey).toString('base64')
+        'API_KEY': apiKey,
+        'API_SECRET': secretKey
       },
       body: JSON.stringify(paymentData)
     });
