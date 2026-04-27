@@ -27,7 +27,8 @@ export async function POST(req: Request) {
       cancel_url: "https://forgebuilder.vercel.app/?payment=cancel",
     };
 
-    const response = await fetch('https://paytech.sn/api/payment/request-command', {
+    // CORRECTION ICI : URL mise à jour
+    const response = await fetch('https://paytech.sn/api/payment/request', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -36,10 +37,8 @@ export async function POST(req: Request) {
       body: JSON.stringify(paymentData)
     });
 
-    // On essaie de lire le texte brut d'abord pour voir l'erreur HTML si ça échoue
     const textResponse = await response.text();
     
-    // On essaie de parser en JSON
     try {
       const data = JSON.parse(textResponse);
       if (data.success === 1 && data.redirect_url) {
@@ -51,10 +50,9 @@ export async function POST(req: Request) {
         });
       }
     } catch (parseError) {
-      // Si ce n'est pas du JSON, c'est que PayTech a renvoyé une page HTML (Erreur serveur ou 404)
       return NextResponse.json({ 
         success: false, 
-        message: "PayTech a retourné une erreur inattendue (HTML au lieu de JSON). Réponse : " + textResponse.substring(0, 200) 
+        message: "PayTech a retourné une erreur inattendue. Réponse : " + textResponse.substring(0, 200) 
       });
     }
 
