@@ -102,27 +102,18 @@ export default function Home() {
   const handleLoadProject = (e: React.ChangeEvent<HTMLInputElement>) => { const file = e.target.files?.[0]; if (file) { const reader = new FileReader(); reader.onload = (evt) => { try { const result = evt.target?.result; if (typeof result === 'string') { const parsed = JSON.parse(result); if (parsed.meta && parsed.sections) setConfig(parsed); } } catch (err) { alert("Fichier invalide"); } }; reader.readAsText(file); } };
   const handleResetProject = () => { if (confirm("Réinitialiser ?")) { setConfig(DEFAULT_CONFIG); setPrompt(""); setImageSearch(""); setFoundImages([]); } };
 
+  // EXPORTS AVEC SECURISATION DES NOMS
   const handleStaticExport = async () => { const zip = new JSZip(); const files = generateSiteFiles(config); for (const [filename, content] of Object.entries(files)) { zip.file(filename, content); } const content = await zip.generateAsync({ type: "blob" }); const url = window.URL.createObjectURL(content); const safeName = (config.meta?.siteName || "Site").replace(/\s+/g, '-'); const a = document.createElement('a'); a.href = url; a.download = `${safeName}.zip`; a.click(); };
   
-  // CORRECTION ICI : Déploiement Vercel en mode Statique
+  const handleDynamicExport = async () => { const zip = new JSZip(); const src = zip.folder("src"); const app = src?.folder("app"); const pub = zip.folder("public"); zip.file("package.json", generatePackageJson(config)); zip.file("next.config.js", generateNextConfig()); zip.file("tailwind.config.js", generateTailwindConfig()); zip.file("README.md", generateProjectReadme(config)); app?.file("page.tsx", generatePageTsx(config)); app?.file("layout.tsx", generateLayoutTsx(config)); app?.file("globals.css", `@tailwind base;\n@tailwind components;\n@tailwind utilities;`); pub?.file("manifest.json", generatePublicManifest(config)); pub?.file("icon.svg", generatePublicIcon(config)); const content = await zip.generateAsync({ type: "blob" }); const safeName = (config.meta?.siteName || "Site").replace(/\s+/g, '-'); const a = document.createElement('a'); a.href = window.URL.createObjectURL(content); a.download = `${safeName}-nextjs.zip`; a.click(); };
+  
+  // CORRECTION DEPLOIEMENT: Utilisation de generateSiteFiles pour Vercel (Site Statique)
   const handleVercelDeploy = async () => { 
     setDeploying('vercel'); setDeployUrl(""); 
     try { 
-      // On utilise generateSiteFiles (HTML statique) au lieu de generatePageTsx (Next.js)
-      // Cela garantit que toutes les pages (contact, services, blog) sont présentes
-      const files = generateSiteFiles(config); 
-      
+      const files = generateSiteFiles(config); // On envoie les fichiers HTML statiques
       const safeName = (config.meta?.siteName || "Site").replace(/\s+/g, '-'); 
-      const res = await fetch('/api/deploy', { 
-        method: 'POST', 
-        headers: { 'Content-Type': 'application/json' }, 
-        body: JSON.stringify({ provider: 'vercel', files, siteName: safeName }) 
-      }); 
-      const data = await res.json(); 
-      if (!res.ok) throw new Error(data.error || "Erreur serveur"); 
-      setDeployUrl(data.url); 
-      alert(`▲ Site publié : ${data.url}`); 
-    } catch (e: any) { alert(`Erreur : ${e.message}`); } finally { setDeploying(null); } 
+      const res = await fetch('/api/deploy', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ provider: 'vercel', files, siteName: safeName }) }); const data = await res.json(); if (!res.ok) throw new Error(data.error || "Erreur serveur"); setDeployUrl(data.url); alert(`▲ Site publié : ${data.url}`); } catch (e: any) { alert(`Erreur : ${e.message}`); } finally { setDeploying(null); } 
   };
   
   const handleNetlifyDeploy = async () => { setDeploying('netlify'); setDeployUrl(""); try { const files = generateSiteFiles(config); const safeName = (config.meta?.siteName || "Site").replace(/\s+/g, '-'); const res = await fetch('/api/deploy', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ provider: 'netlify', files, siteName: safeName }) }); const data = await res.json(); if (!res.ok) throw new Error(data.error || "Erreur serveur"); setDeployUrl(data.url); alert(`🚀 Site publié : ${data.url}`); } catch (e: any) { alert(`Erreur : ${e.message}`); } finally { setDeploying(null); } };
