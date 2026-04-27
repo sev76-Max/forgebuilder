@@ -27,8 +27,8 @@ export async function POST(req: Request) {
       cancel_url: "https://forgebuilder.vercel.app/?payment=cancel",
     };
 
-    // CORRECTION ICI : URL mise à jour
-    const response = await fetch('https://paytech.sn/api/payment/request', {
+    // CORRECTION ICI : URL finale correcte
+    const response = await fetch('https://paytech.sn/api/payment', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
