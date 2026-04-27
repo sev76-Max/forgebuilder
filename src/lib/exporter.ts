@@ -56,21 +56,19 @@ function getStyles() {
   return `<style>html{scroll-behavior:smooth}body{font-family:'Inter',sans-serif;margin:0;color:#1a202c;-webkit-font-smoothing:antialiased;line-height:1.6;background-color:#fff}*,::before,::after{box-sizing:border-box}a{text-decoration:none;color:inherit}img{max-width:100%;height:auto;display:block}h1,h2,h3{line-height:1.2;font-weight:800;letter-spacing:-0.02em}.container{max-width:1200px;margin:0 auto;padding:0 1.5rem}.section{padding:6rem 0}.btn-primary{display:inline-flex;align-items:center;justify-content:center;padding:1rem 2.5rem;border-radius:9999px;color:white;font-weight:700;font-size:1.1rem;transition:all .3s ease;box-shadow:0 4px 14px 0 rgba(0,0,0,.25)}.btn-primary:hover{transform:translateY(-2px);box-shadow:0 6px 20px 0 rgba(0,0,0,.3)}.card{background:white;border-radius:1rem;overflow:hidden;transition:all .3s ease;border:1px solid rgba(0,0,0,.05);box-shadow:0 4px 6px -1px rgba(0,0,0,.05)}.card:hover{transform:translateY(-5px);box-shadow:0 20px 25px -5px rgba(0,0,0,.1)}.nav-toggle{display:none}.hamburger{display:none;flex-direction:column;justify-content:space-around;width:2.5rem;height:2.5rem;cursor:pointer;z-index:100}.hamburger span{width:2.5rem;height:.2rem;background:#333;border-radius:10px;transition:all .3s linear;position:relative;transform-origin:1px}@media(max-width:768px){.hamburger{display:flex}.nav-links{position:absolute;top:0;right:0;height:100vh;width:300px;background:white;flex-direction:column;align-items:center;justify-content:flex-start;padding-top:100px;gap:2rem;box-shadow:-5px 0 10px rgba(0,0,0,.1);transform:translateX(100%);transition:transform .3s ease-in-out;z-index:90;display:flex}.nav-toggle:checked~.nav-links{transform:translateX(0)}.nav-toggle:checked~.hamburger span:first-child{transform:rotate(45deg)}.nav-toggle:checked~.hamburger span:nth-child(2){opacity:0}.nav-toggle:checked~.hamburger span:last-child{transform:rotate(-45deg)}.nav-links a{font-size:1.2rem;color:#111!important}.section{padding:4rem 0}}</style>`;
 }
 
-// NOUVEAU : Fonction intelligente pour nettoyer et valider les liens
-function getSafeLink(rawLink: string, cleanPhone: string): string {
-  // Si c'est un lien WhatsApp
-  if (rawLink.startsWith('https://wa.me/')) {
-    // Si le numéro est vide ou le lien est malformé (ex: wa.me/?text)
-    if (!cleanPhone || rawLink.includes('wa.me/?')) {
-      return 'contact.html'; // Fallback sécurité vers la page contact
-    }
-  }
-  // Si c'est un lien mailto sans email, on fallback
-  if (rawLink.startsWith('mailto:') && rawLink === 'mailto:') {
-     return 'contact.html';
-  }
-  
-  return rawLink;
+// NOUVEAU : Helper pour extraire le numéro proprement depuis un lien wa.me
+function extractPhoneFromLink(link: string): string {
+  if (!link) return "";
+  const match = link.match(/wa\.me\/(\d+)/);
+  return match ? match[1] : "";
+}
+
+// NOUVEAU : Helper pour vérifier si un lien WhatsApp est valide (a un numéro)
+function isValidWhatsAppLink(link: string): boolean {
+  if (!link || !link.startsWith('https://wa.me/')) return false;
+  // Vérifie si après wa.me/ il y a des chiffres (le numéro)
+  const phone = extractPhoneFromLink(link);
+  return phone.length > 5; // Un numéro valide a généralement plus de 5 chiffres
 }
 
 function getNavbarHtml(config: SiteConfig, activePage: string = 'home') {
@@ -81,14 +79,23 @@ function getNavbarHtml(config: SiteConfig, activePage: string = 'home') {
   const activeStyle = 'font-weight: 700; color: #111827;';
   const servicesLink = activePage === 'home' ? '#services' : 'index.html#services';
 
-  // Sécurisation du lien Contact
   const rawHeroLink = config.sections.find(s => s.type === 'hero')?.data?.ctaLink || '#';
-  const cleanPhone = (meta.phone || "").replace(/\D/g, '');
-  const safeLink = getSafeLink(rawHeroLink, cleanPhone);
   
-  const isExternalAction = safeLink.startsWith('tel:') || safeLink.startsWith('mailto:') || safeLink.startsWith('https://');
-  const navContactHref = isExternalAction ? safeLink : 'contact.html';
-  const navContactTarget = isExternalAction ? '_blank' : '_self';
+  // LOGIQUE CORRIGÉE
+  let navContactHref = 'contact.html';
+  let navContactTarget = '_self';
+
+  if (rawHeroLink.startsWith('tel:') || rawHeroLink.startsWith('mailto:')) {
+    navContactHref = rawHeroLink;
+    navContactTarget = '_blank';
+  } else if (isValidWhatsAppLink(rawHeroLink)) {
+    // Si c'est un lien WhatsApp valide, on l'utilise
+    navContactHref = rawHeroLink; 
+    navContactTarget = '_blank';
+  } else {
+    // Sinon on va sur la page contact
+    navContactHref = 'contact.html';
+  }
 
   return `<nav style="position: fixed; top: 0; left: 0; right: 0; z-index: 50; background: rgba(255,255,255,0.98); backdrop-filter: blur(10px); box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05);"><div class="container" style="display: flex; justify-content: space-between; align-items: center; height: 80px; position: relative;">${logoHtml}<label for="nav-toggle" class="hamburger"><span></span><span></span><span></span></label><input type="checkbox" id="nav-toggle" class="nav-toggle"><div class="nav-links" style="display: flex; align-items: center; gap: 2rem;"><a href="index.html" style="${linkStyle} ${activePage === 'home' ? activeStyle : ''}">Accueil</a><a href="${servicesLink}" style="${linkStyle} ${activePage === 'services' ? activeStyle : ''}">Services</a><a href="about.html" style="${linkStyle} ${activePage === 'about' ? activeStyle : ''}">À Propos</a><a href="testimonials.html" style="${linkStyle} ${activePage === 'testimonials' ? activeStyle : ''}">Avis</a><a href="blog.html" style="${linkStyle} ${activePage === 'blog' ? activeStyle : ''}">Blog</a><a href="${navContactHref}" target="${navContactTarget}" class="btn-primary" style="padding: 0.6rem 1.2rem; font-size: 0.9rem; background-color: ${brandColor};">Contact</a></div></div></nav><div style="height: 80px;"></div>`;
 }
@@ -123,8 +130,9 @@ function generateHomePage(config: SiteConfig): string {
   const features = sections.find(s => s.type === 'features')?.data || { title: "Services", items: [] };
   const products = sections.find(s => s.type === 'products')?.data || null;
 
-  const rawPhone = meta.phone || "";
-  const cleanPhone = rawPhone.replace(/\D/g, '');
+  // Récupération du lien maitre (Hero)
+  const masterLink = hero.ctaLink || '#';
+  const isWhatsApp = isValidWhatsAppLink(masterLink);
 
   const servicesHtml = (features.items || []).map((item: any, index: number) => `
     <a href="service-${index + 1}.html" style="text-decoration: none; color: inherit;">
@@ -144,13 +152,18 @@ function generateHomePage(config: SiteConfig): string {
           <h2 style="text-align: center; font-size: 2.5rem; font-weight: 800; margin-bottom: 4rem; color: ${fTitleColor};">${products.title || "Nos Produits"}</h2>
           <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 2rem;">
             ${products.items.map((item: any) => {
+              // LOGIQUE PRODUIT CORRIGÉE
               let btnLink = "contact.html";
               let btnTarget = "_self";
-              if (cleanPhone) {
-                const message = encodeURIComponent(`Bonjour, je suis intéressé(e) par le produit : ${item.title}`);
-                btnLink = `https://wa.me/${cleanPhone}?text=${message}`;
+              
+              if (isWhatsApp) {
+                // Si le lien maitre est WhatsApp valide, on l'utilise en ajoutant le nom du produit au message
+                const baseLink = masterLink.split('?')[0]; // On garde wa.me/numero
+                const msg = encodeURIComponent(`Bonjour, je suis intéressé(e) par le produit : ${item.title}`);
+                btnLink = `${baseLink}?text=${msg}`;
                 btnTarget = "_blank";
               }
+
               return `
                 <div class="card" style="padding: 0; overflow: hidden;">
                   <img src="${item.imageUrl}" style="width: 100%; height: 250px; object-fit: cover;" alt="${item.title}"/>
@@ -171,12 +184,20 @@ function generateHomePage(config: SiteConfig): string {
     `;
   }
 
-  // Sécurisation du bouton Hero
-  const rawHeroLink = hero.ctaLink || '#';
-  const safeHeroLink = getSafeLink(rawHeroLink, cleanPhone);
-  const heroTarget = safeHeroLink.startsWith('http') || safeHeroLink.startsWith('tel') || safeHeroLink.startsWith('mailto') ? '_blank' : '_self';
+  // HERO LINK CORRECTED
+  let heroTarget = '_self';
+  let finalHeroLink = 'contact.html';
+  
+  if (masterLink.startsWith('tel:') || masterLink.startsWith('mailto:') || isWhatsApp) {
+     finalHeroLink = masterLink;
+     heroTarget = '_blank';
+  } else if (masterLink === '#' || masterLink === '') {
+     finalHeroLink = 'contact.html';
+  } else {
+     finalHeroLink = masterLink;
+  }
 
-  return `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>${meta.siteName}</title><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">${getSeoHead(meta, "", hero.imageUrl)}${getStyles()}</head><body>${getNavbarHtml(config, 'home')}<section style="position: relative; min-height: 85vh; display: flex; align-items: center; justify-content: center; background-color: #000; overflow: hidden;"><img src="${hero.imageUrl}" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.5; transform: scale(1.05);" /><div style="position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.7) 100%);"></div><div class="container" style="position: relative; z-index: 10; text-align: center; padding: 2rem;"><h1 style="font-size: clamp(2.5rem, 5vw, 4.5rem); font-weight: 800; margin-bottom: 1.5rem; color: ${theme.textColor || '#fff'}; letter-spacing: -0.03em;">${hero.headline}</h1><p style="font-size: clamp(1rem, 2vw, 1.35rem); margin-bottom: 2.5rem; color: ${theme.secondaryTextColor || '#e5e7eb'}; max-width: 800px; margin-left: auto; margin-right: auto;">${hero.subheadline}</p><a href="${safeHeroLink}" target="${heroTarget}" class="btn-primary" style="background-color: ${brandColor};">${hero.ctaText}</a></div></section><section id="services" class="section" style="background: #f9fafb;"><div class="container"><h2 style="text-align: center; font-size: 2.5rem; font-weight: 800; margin-bottom: 4rem; color: ${fTitleColor};">${features.title}</h2><div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem;">${servicesHtml}</div></div></section>${productsHtml}<section class="section" style="background: white; text-align: center;"><div class="container"><h2 style="font-size: 2rem; font-weight: 700; margin-bottom: 2rem; color: ${fTitleColor};">Ils nous font confiance</h2><a href="testimonials.html" class="btn-primary" style="background-color: ${fTitleColor}; font-size: 0.95rem; padding: 0.8rem 2rem;">Lire les témoignages</a></div></section>${getFooterHtml(meta)}</body></html>`;
+  return `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>${meta.siteName}</title><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">${getSeoHead(meta, "", hero.imageUrl)}${getStyles()}</head><body>${getNavbarHtml(config, 'home')}<section style="position: relative; min-height: 85vh; display: flex; align-items: center; justify-content: center; background-color: #000; overflow: hidden;"><img src="${hero.imageUrl}" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.5; transform: scale(1.05);" /><div style="position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.7) 100%);"></div><div class="container" style="position: relative; z-index: 10; text-align: center; padding: 2rem;"><h1 style="font-size: clamp(2.5rem, 5vw, 4.5rem); font-weight: 800; margin-bottom: 1.5rem; color: ${theme.textColor || '#fff'}; letter-spacing: -0.03em;">${hero.headline}</h1><p style="font-size: clamp(1rem, 2vw, 1.35rem); margin-bottom: 2.5rem; color: ${theme.secondaryTextColor || '#e5e7eb'}; max-width: 800px; margin-left: auto; margin-right: auto;">${hero.subheadline}</p><a href="${finalHeroLink}" target="${heroTarget}" class="btn-primary" style="background-color: ${brandColor};">${hero.ctaText}</a></div></section><section id="services" class="section" style="background: #f9fafb;"><div class="container"><h2 style="text-align: center; font-size: 2.5rem; font-weight: 800; margin-bottom: 4rem; color: ${fTitleColor};">${features.title}</h2><div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem;">${servicesHtml}</div></div></section>${productsHtml}<section class="section" style="background: white; text-align: center;"><div class="container"><h2 style="font-size: 2rem; font-weight: 700; margin-bottom: 2rem; color: ${fTitleColor};">Ils nous font confiance</h2><a href="testimonials.html" class="btn-primary" style="background-color: ${fTitleColor}; font-size: 0.95rem; padding: 0.8rem 2rem;">Lire les témoignages</a></div></section>${getFooterHtml(meta)}</body></html>`;
 }
 
 function generateServicePage(config: SiteConfig, item: any, index: number): string {
@@ -186,13 +207,18 @@ function generateServicePage(config: SiteConfig, item: any, index: number): stri
   const fTitleColor = theme?.featureTitleColor || "#111827";
   const fDescColor = theme?.featureDescColor || "#4b5563";
   
-  const rawHeroLink = config.sections.find(s => s.type === 'hero')?.data?.ctaLink || '#';
-  const cleanPhone = (meta.phone || "").replace(/\D/g, '');
-  // Sécurisation du bouton "Demander un devis"
-  const safeLink = getSafeLink(rawHeroLink, cleanPhone);
-  const target = safeLink.startsWith('http') || safeLink.startsWith('mailto') || safeLink.startsWith('tel') ? '_blank' : '_self';
+  const masterLink = config.sections.find(s => s.type === 'hero')?.data?.ctaLink || '#';
+  const isWhatsApp = isValidWhatsAppLink(masterLink);
+  
+  let btnLink = 'contact.html';
+  let btnTarget = '_self';
+  
+  if (isWhatsApp || masterLink.startsWith('tel:') || masterLink.startsWith('mailto:')) {
+     btnLink = masterLink;
+     btnTarget = '_blank';
+  }
 
-  return `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>${item.title} - ${meta.siteName}</title><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">${getSeoHead(meta, item.title)}${getStyles()}</head><body>${getNavbarHtml(config, 'services')}<div class="container" style="padding: 6rem 1.5rem; max-width: 800px; margin: 0 auto;"><a href="index.html#services" style="color: ${brandColor}; font-weight: 600; display: inline-block; margin-bottom: 2rem;">← Retour aux services</a><article><div style="width: 80px; height: 80px; background: linear-gradient(135deg, ${brandColor}22, ${brandColor}11); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 2rem; font-size: 2.5rem; color: ${brandColor}; font-weight: bold;">${(item.title || 'S').charAt(0)}</div><h1 style="font-size: 3rem; font-weight: 800; margin-bottom: 1rem; color: ${fTitleColor}; line-height: 1.1;">${item.title}</h1><div style="font-size: 1.2rem; color: ${fDescColor}; line-height: 1.8; margin-bottom: 3rem;">${item.description}</div><a href="${safeLink}" target="${target}" class="btn-primary" style="background-color: ${brandColor};">Demander un devis</a></article></div>${getFooterHtml(meta)}</body></html>`;
+  return `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>${item.title} - ${meta.siteName}</title><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">${getSeoHead(meta, item.title)}${getStyles()}</head><body>${getNavbarHtml(config, 'services')}<div class="container" style="padding: 6rem 1.5rem; max-width: 800px; margin: 0 auto;"><a href="index.html#services" style="color: ${brandColor}; font-weight: 600; display: inline-block; margin-bottom: 2rem;">← Retour aux services</a><article><div style="width: 80px; height: 80px; background: linear-gradient(135deg, ${brandColor}22, ${brandColor}11); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 2rem; font-size: 2.5rem; color: ${brandColor}; font-weight: bold;">${(item.title || 'S').charAt(0)}</div><h1 style="font-size: 3rem; font-weight: 800; margin-bottom: 1rem; color: ${fTitleColor}; line-height: 1.1;">${item.title}</h1><div style="font-size: 1.2rem; color: ${fDescColor}; line-height: 1.8; margin-bottom: 3rem;">${item.description}</div><a href="${btnLink}" target="${btnTarget}" class="btn-primary" style="background-color: ${brandColor};">Demander un devis</a></article></div>${getFooterHtml(meta)}</body></html>`;
 }
 
 function generateAboutPage(config: SiteConfig): string {
