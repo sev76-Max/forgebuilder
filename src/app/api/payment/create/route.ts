@@ -1,56 +1,52 @@
-// src/app/api/payment/create/route.ts
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 
-export async function POST(req: NextRequest) {
+export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { amount, userId } = body; // Montant en FCFA
+    const { amount, userId } = body;
 
-    // Configuration PayTech
     const apiKey = process.env.PAYTECH_API_KEY;
     const secretKey = process.env.PAYTECH_SECRET_KEY;
 
-    if (!apiKey || !secretKey) throw new Error("Clés PayTech manquantes");
+    if (!apiKey || !secretKey) {
+      return NextResponse.json({ success: false, message: "Clés API PayTech manquantes sur le serveur." });
+    }
 
+    // Préparation des données pour PayTech
     const paymentData = {
-      item_name: "Abonnement ForgeBuilder Pro",
-      item_price: amount,
+      item_name: "Déploiement Pro ForgeBuilder",
+      item_price: amount, // Montant en FCFA
+      command_name: `Commande Pro - ${userId}`,
+      ref_command: `REF-${Date.now()}`,
+      customer_phone: "", // Optionnel
+      customer_email: "", // Optionnel
       currency: "XOF",
-      ref_command: `FORGE_${Date.now()}`, // Référence unique
-      command_name: "Abonnement Mensuel",
-      env: "prod", // Mettre "test" en mode test, "prod" en production
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?payment=success`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/?payment=cancel`,
-      ipn_url: `${process.env.NEXT_PUBLIC_APP_URL}/api/payment/notify`, // Webhook
-      custom_field: JSON.stringify({ user_id: userId }) // Données personnalisées
+      lang: "fr",
+      success_url: "https://forgebuilder.vercel.app/?payment=success", // Remplacez par votre URL
+      cancel_url: "https://forgebuilder.vercel.app/?payment=cancel",   // Remplacez par votre URL
+      callback_url: "https://forgebuilder.vercel.app/api/payment/callback" // Pour les notifications serveur
     };
 
     // Appel à l'API PayTech
-    const response = await fetch('https://paytech.sn/api/payment/request-payment', {
+    const response = await fetch('https://paytech.sn/api/payment/request-command', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'API_KEY': apiKey,
-        'API_SECRET': secretKey
+        'Authorization': 'Basic ' + Buffer.from(apiKey + ':' + secretKey).toString('base64')
       },
       body: JSON.stringify(paymentData)
     });
 
-    const result = await response.json();
+    const data = await response.json();
 
-    // PayTech renvoie un objet avec 'redirect_url' si succès
-    if (result.success === 1 || result.redirect_url) {
-      return NextResponse.json({ 
-        success: true, 
-        paymentUrl: result.redirect_url 
-      });
+    if (data.success === 1 && data.redirect_url) {
+      return NextResponse.json({ success: true, paymentUrl: data.redirect_url });
     } else {
-      console.error("Erreur PayTech:", result);
-      throw new Error(result.errors || "Erreur d'initialisation PayTech");
+      return NextResponse.json({ success: false, message: data.message || "Erreur PayTech" });
     }
 
-  } catch (error: any) {
+  } catch (error) {
     console.error("Erreur paiement:", error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, message: "Erreur interne du serveur." });
   }
 }
