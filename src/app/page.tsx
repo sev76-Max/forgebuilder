@@ -118,7 +118,20 @@ export default function Home() {
   
   const handleNetlifyDeploy = async () => { setDeploying('netlify'); setDeployUrl(""); try { const files = generateSiteFiles(config); const safeName = (config.meta?.siteName || "Site").replace(/\s+/g, '-'); const res = await fetch('/api/deploy', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ provider: 'netlify', files, siteName: safeName }) }); const data = await res.json(); if (!res.ok) throw new Error(data.error || "Erreur serveur"); setDeployUrl(data.url); alert(`🚀 Site publié : ${data.url}`); } catch (e: any) { alert(`Erreur : ${e.message}`); } finally { setDeploying(null); } };
 
-  const handlePayment = async () => { setPaymentLoading(true); try { const res = await fetch('/api/payment/create', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ amount: 10000, userId: "user_demo_123" }) }); const data = await res.json(); if (data.success && data.paymentUrl) window.location.href = data.paymentUrl; else alert("Impossible de lancer le paiement."); } catch (e) { alert("Erreur de connexion."); } finally { setPaymentLoading(false); } };
+  // CORRECTION PAIEMENT: Affiche le message détaillé retourné par le serveur
+  const handlePayment = async () => { 
+    setPaymentLoading(true); 
+    try { 
+      const res = await fetch('/api/payment/create', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify({ amount: 10000, userId: "user_demo_123" }) 
+      }); 
+      const data = await res.json(); 
+      if (data.success && data.paymentUrl) window.location.href = data.paymentUrl; 
+      else alert(data.message || "Impossible de lancer le paiement."); // MODIFICATION ICI
+    } catch (e) { alert("Erreur de connexion."); } finally { setPaymentLoading(false); } 
+  };
 
   return (
     <main className="flex h-screen">
