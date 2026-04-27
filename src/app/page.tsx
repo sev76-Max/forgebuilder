@@ -200,8 +200,8 @@ export default function Home() {
               <h3 className="text-md font-semibold text-purple-400 uppercase">2. Styles Globaux</h3>
               <div className="flex gap-2 items-center">
                 <label className="text-xs text-gray-400 w-20">Titres</label>
-                <input type="color" value={config.meta.theme.featureTitleColor || '#111'} onChange={(e) => updateTheme('featureTitleColor', e.target.value)} className="w-8 h-6 rounded cursor-pointer bg-transparent border p-0.5" />
-                <input type="text" value={config.meta.theme.featureTitleColor || '#111'} onChange={(e) => updateTheme('featureTitleColor', e.target.value)} className="flex-1 bg-gray-700 rounded px-2 py-1 text-xs" />
+                <input type="color" value={config.meta.theme.featureTitleColor || '#111111'} onChange={(e) => updateTheme('featureTitleColor', e.target.value)} className="w-8 h-6 rounded cursor-pointer bg-transparent border p-0.5" />
+                <input type="text" value={config.meta.theme.featureTitleColor || '#111111'} onChange={(e) => updateTheme('featureTitleColor', e.target.value)} className="flex-1 bg-gray-700 rounded px-2 py-1 text-xs" />
               </div>
             </div>
 
