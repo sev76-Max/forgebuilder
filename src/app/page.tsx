@@ -32,11 +32,11 @@ export default function Home() {
   const [paymentLoading, setPaymentLoading] = useState(false);
 
   const themes = [
-    { name: "Nuit", icon: "🌙", theme: { primaryColor: "#6366f1", textColor: "#ffffff", secondaryTextColor: "#e5e7eb", featureTitleColor: "#ffffff", featureDescColor: "#d1d5db", brandColor: "#818cf8", logoColor: "#818cf8", logoStyle: "neon", layoutStyle: "dark" } },
-    { name: "Nature", icon: "🌲", theme: { primaryColor: "#15803d", textColor: "#1f2937", secondaryTextColor: "#4b5563", featureTitleColor: "#166534", featureDescColor: "#374151", brandColor: "#15803d", logoColor: "#15803d", logoStyle: "stamp", layoutStyle: "light" } },
-    { name: "Océan", icon: "🌊", theme: { primaryColor: "#0ea5e9", textColor: "#0c4a6e", secondaryTextColor: "#0369a1", featureTitleColor: "#0284c7", featureDescColor: "#334155", brandColor: "#0ea5e9", logoColor: "#0ea5e9", logoStyle: "circle", layoutStyle: "light" } },
-    { name: "Manga", icon: "🎨", theme: { primaryColor: "#ec4899", textColor: "#831843", secondaryTextColor: "#be185d", featureTitleColor: "#be185d", featureDescColor: "#831843", brandColor: "#ec4899", logoColor: "#ec4899", logoStyle: "drawn", layoutStyle: "light" } },
-    { name: "Luxe", icon: "👑", theme: { primaryColor: "#b91c1c", textColor: "#1c1917", secondaryTextColor: "#44403c", featureTitleColor: "#881337", featureDescColor: "#57534e", brandColor: "#ca8a04", logoColor: "#ca8a04", logoStyle: "embossed", layoutStyle: "light" } }
+    { name: "Nuit", icon: "🌙", theme: { primaryColor: "#6366f1", textColor: "#ffffff", secondaryTextColor: "#e5e7eb", featureTitleColor: "#ffffff", featureDescColor: "#d1d5db", brandColor: "#818cf8", logoColor: "#818cf8", logoStyle: "neon" } },
+    { name: "Nature", icon: "🌲", theme: { primaryColor: "#15803d", textColor: "#1f2937", secondaryTextColor: "#4b5563", featureTitleColor: "#166534", featureDescColor: "#374151", brandColor: "#15803d", logoColor: "#15803d", logoStyle: "stamp" } },
+    { name: "Océan", icon: "🌊", theme: { primaryColor: "#0ea5e9", textColor: "#0c4a6e", secondaryTextColor: "#0369a1", featureTitleColor: "#0284c7", featureDescColor: "#334155", brandColor: "#0ea5e9", logoColor: "#0ea5e9", logoStyle: "circle" } },
+    { name: "Manga", icon: "🎨", theme: { primaryColor: "#ec4899", textColor: "#831843", secondaryTextColor: "#be185d", featureTitleColor: "#be185d", featureDescColor: "#831843", brandColor: "#ec4899", logoColor: "#ec4899", logoStyle: "drawn" } },
+    { name: "Luxe", icon: "👑", theme: { primaryColor: "#b91c1c", textColor: "#1c1917", secondaryTextColor: "#44403c", featureTitleColor: "#881337", featureDescColor: "#57534e", brandColor: "#ca8a04", logoColor: "#ca8a04", logoStyle: "embossed" } }
   ];
 
   const applyTheme = (preset: any) => setConfig(prev => ({ ...prev, meta: { ...prev.meta, theme: { ...prev.meta.theme, ...preset.theme }, layoutStyle: preset.theme.layoutStyle } }));
@@ -52,7 +52,6 @@ export default function Home() {
   const updateHeroLink = (value: string) => setConfig(prev => ({ ...prev, sections: prev.sections.map(s => s.type === 'hero' ? { ...s, data: { ...s.data, ctaLink: value } } : s) }));
   const updateListItem = (type: string, idx: number, key: string, value: any) => setConfig(prev => ({ ...prev, sections: prev.sections.map(s => { if (s.type === type && s.data.items) { const newItems = s.data.items.map((it: any, i: number) => i === idx ? { ...it, [key]: value } : it); return { ...s, data: { ...s.data, items: newItems } }; } return s; }) }));
   
-  // NOUVEAU : Fonctions pour gérer les produits
   const addProduct = () => {
     setConfig(prev => ({
       ...prev,
@@ -103,11 +102,31 @@ export default function Home() {
   const handleLoadProject = (e: React.ChangeEvent<HTMLInputElement>) => { const file = e.target.files?.[0]; if (file) { const reader = new FileReader(); reader.onload = (evt) => { try { const result = evt.target?.result; if (typeof result === 'string') { const parsed = JSON.parse(result); if (parsed.meta && parsed.sections) setConfig(parsed); } } catch (err) { alert("Fichier invalide"); } }; reader.readAsText(file); } };
   const handleResetProject = () => { if (confirm("Réinitialiser ?")) { setConfig(DEFAULT_CONFIG); setPrompt(""); setImageSearch(""); setFoundImages([]); } };
 
-  // EXPORTS AVEC SECURISATION DES NOMS
   const handleStaticExport = async () => { const zip = new JSZip(); const files = generateSiteFiles(config); for (const [filename, content] of Object.entries(files)) { zip.file(filename, content); } const content = await zip.generateAsync({ type: "blob" }); const url = window.URL.createObjectURL(content); const safeName = (config.meta?.siteName || "Site").replace(/\s+/g, '-'); const a = document.createElement('a'); a.href = url; a.download = `${safeName}.zip`; a.click(); };
-  const handleDynamicExport = async () => { const zip = new JSZip(); const src = zip.folder("src"); const app = src?.folder("app"); const pub = zip.folder("public"); zip.file("package.json", generatePackageJson(config)); zip.file("next.config.js", generateNextConfig()); zip.file("tailwind.config.js", generateTailwindConfig()); zip.file("README.md", generateProjectReadme(config)); app?.file("page.tsx", generatePageTsx(config)); app?.file("layout.tsx", generateLayoutTsx(config)); app?.file("globals.css", `@tailwind base;\n@tailwind components;\n@tailwind utilities;`); pub?.file("manifest.json", generatePublicManifest(config)); pub?.file("icon.svg", generatePublicIcon(config)); const content = await zip.generateAsync({ type: "blob" }); const safeName = (config.meta?.siteName || "Site").replace(/\s+/g, '-'); const a = document.createElement('a'); a.href = window.URL.createObjectURL(content); a.download = `${safeName}-nextjs.zip`; a.click(); };
+  
+  // CORRECTION ICI : Déploiement Vercel en mode Statique
+  const handleVercelDeploy = async () => { 
+    setDeploying('vercel'); setDeployUrl(""); 
+    try { 
+      // On utilise generateSiteFiles (HTML statique) au lieu de generatePageTsx (Next.js)
+      // Cela garantit que toutes les pages (contact, services, blog) sont présentes
+      const files = generateSiteFiles(config); 
+      
+      const safeName = (config.meta?.siteName || "Site").replace(/\s+/g, '-'); 
+      const res = await fetch('/api/deploy', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify({ provider: 'vercel', files, siteName: safeName }) 
+      }); 
+      const data = await res.json(); 
+      if (!res.ok) throw new Error(data.error || "Erreur serveur"); 
+      setDeployUrl(data.url); 
+      alert(`▲ Site publié : ${data.url}`); 
+    } catch (e: any) { alert(`Erreur : ${e.message}`); } finally { setDeploying(null); } 
+  };
+  
   const handleNetlifyDeploy = async () => { setDeploying('netlify'); setDeployUrl(""); try { const files = generateSiteFiles(config); const safeName = (config.meta?.siteName || "Site").replace(/\s+/g, '-'); const res = await fetch('/api/deploy', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ provider: 'netlify', files, siteName: safeName }) }); const data = await res.json(); if (!res.ok) throw new Error(data.error || "Erreur serveur"); setDeployUrl(data.url); alert(`🚀 Site publié : ${data.url}`); } catch (e: any) { alert(`Erreur : ${e.message}`); } finally { setDeploying(null); } };
-  const handleVercelDeploy = async () => { setDeploying('vercel'); setDeployUrl(""); try { const files: Record<string, string> = {}; files['package.json'] = generatePackageJson(config); files['next.config.js'] = generateNextConfig(); files['tailwind.config.js'] = generateTailwindConfig(); files['README.md'] = generateProjectReadme(config); files['src/app/page.tsx'] = generatePageTsx(config); files['src/app/layout.tsx'] = generateLayoutTsx(config); files['src/app/globals.css'] = "@tailwind base;\n@tailwind components;\n@tailwind utilities;"; files['public/manifest.json'] = generatePublicManifest(config); files['public/icon.svg'] = generatePublicIcon(config); const safeName = (config.meta?.siteName || "Site").replace(/\s+/g, '-'); const res = await fetch('/api/deploy', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ provider: 'vercel', files, siteName: safeName }) }); const data = await res.json(); if (!res.ok) throw new Error(data.error || "Erreur serveur"); setDeployUrl(data.url); alert(`▲ Site publié : ${data.url}`); } catch (e: any) { alert(`Erreur : ${e.message}`); } finally { setDeploying(null); } };
+
   const handlePayment = async () => { setPaymentLoading(true); try { const res = await fetch('/api/payment/create', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ amount: 10000, userId: "user_demo_123" }) }); const data = await res.json(); if (data.success && data.paymentUrl) window.location.href = data.paymentUrl; else alert("Impossible de lancer le paiement."); } catch (e) { alert("Erreur de connexion."); } finally { setPaymentLoading(false); } };
 
   return (
@@ -158,7 +177,6 @@ export default function Home() {
                 <div><label className="text-xs text-gray-400">Style Logo</label><select value={config.meta.theme.logoStyle || "minimal"} onChange={(e) => updateTheme('logoStyle', e.target.value)} className="w-full h-9 rounded bg-gray-700 border border-gray-600 px-2 text-xs mt-1"><option value="minimal">Simple</option><option value="circle">Cercle</option><option value="square">Carré</option><option value="gradient">Dégradé</option><option value="drawn">Dessiné</option><option value="neon">Néon</option><option value="stamp">Cachet</option><option value="embossed">Embouti</option></select></div>
               </div>
 
-              {/* RESTAURATION : LOGO COLOR */}
               <div className="flex gap-2 items-center">
                 <label className="text-xs text-gray-400 w-20">Couleur Logo</label>
                 <input type="color" value={config.meta.theme.logoColor || config.meta.theme.brandColor || "#F97316"} onChange={(e) => updateTheme('logoColor', e.target.value)} className="w-8 h-6 rounded cursor-pointer bg-transparent border p-0.5" />
@@ -207,7 +225,7 @@ export default function Home() {
               ))}
             </div>
 
-            {/* SECTION PRODUITS (NOUVEAU) */}
+            {/* SECTION PRODUITS */}
             {config.sections.find(s => s.type === 'products') && (
               <div className="border border-amber-700 bg-amber-900/20 rounded-lg p-4 space-y-2">
                 <h3 className="text-md font-semibold text-amber-400 uppercase">🛍️ Produits</h3>
