@@ -38,28 +38,26 @@ export default function Home() {
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
+  
+  // NOUVEAU : État pour le mode aperçu plein écran
+  const [isPreview, setIsPreview] = useState(false);
 
-  // NOUVEAU : Fonction de paiement qui utilise les données sauvegardées
   const launchPaymentProcess = async (userId: string) => {
-    // Sécurité anti-boucle
     const intent = localStorage.getItem('forge_intent');
     if (intent !== 'pay') return;
-    localStorage.removeItem('forge_intent'); // On efface tout de suite
-
-    // 1. Récupérer la configuration sauvegardée
-    const savedConfigStr = localStorage.getItem('forge_pending_config');
-    if (!savedConfigStr) {
-      alert("Erreur : Le projet à payer est introuvable. Veuillez réessayer.");
-      setPaymentLoading(false);
-      return;
-    }
-    const savedConfig = JSON.parse(savedConfigStr);
+    localStorage.removeItem('forge_intent');
     
-    // Nettoyer le storage
-    localStorage.removeItem('forge_pending_config');
-
     setPaymentLoading(true);
     try {
+      const savedConfigStr = localStorage.getItem('forge_pending_config');
+      if (!savedConfigStr) {
+        alert("Erreur : Le projet est introuvable.");
+        setPaymentLoading(false);
+        return;
+      }
+      const savedConfig = JSON.parse(savedConfigStr);
+      localStorage.removeItem('forge_pending_config');
+
       const { data: projectData, error: projectError } = await supabase
         .from('projects')
         .insert({
@@ -102,18 +100,14 @@ export default function Home() {
   };
 
   useEffect(() => {
-    // 1. Vérification session initiale
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
       setCheckingAuth(false);
-      
-      // Si l'utilisateur est là et veut payer
       if (session?.user && localStorage.getItem('forge_intent') === 'pay') {
         launchPaymentProcess(session.user.id);
       }
     });
 
-    // 2. Écoute des changements (Magic Link)
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
       const currentUser = session?.user ?? null;
       setUser(currentUser);
@@ -121,16 +115,12 @@ export default function Home() {
       
       if (event === 'SIGNED_IN') {
          window.history.replaceState({}, document.title, window.location.pathname);
-         
          if (localStorage.getItem('forge_intent') === 'pay') {
-           if (currentUser) {
-             launchPaymentProcess(currentUser.id);
-           }
+           if (currentUser) launchPaymentProcess(currentUser.id);
          }
       }
     });
 
-    // 3. Retour PayTech
     const params = new URLSearchParams(window.location.search);
     if (params.get('payment') === 'success') {
       alert("Paiement réussi !");
@@ -146,9 +136,6 @@ export default function Home() {
   const handleLogin = async () => {
     const email = window.prompt("Entrez votre email :");
     if (!email) return;
-    
-    // NOUVEAU : On sauvegarde le projet ACTUEL dans le localStorage
-    // Ainsi, même si la page recharge, on ne perd rien.
     localStorage.setItem('forge_pending_config', JSON.stringify(config));
     localStorage.setItem('forge_intent', 'pay');
 
@@ -157,7 +144,7 @@ export default function Home() {
       options: { emailRedirectTo: window.location.origin },
     });
     if (error) alert("Erreur : " + error.message);
-    else alert("Lien envoyé ! Cliquez dessus pour payer.");
+    else alert("Lien envoyé !");
   };
 
   const handleLogout = async () => {
@@ -211,22 +198,33 @@ export default function Home() {
       handleLogin(); 
       return;
     }
-    // Si déjà connecté, on lance le paiement direct
     localStorage.setItem('forge_pending_config', JSON.stringify(config));
     launchPaymentProcess(user.id);
   };
 
   return (
     <main className="flex h-screen">
-      <div className="w-1/3 bg-gray-900 text-white p-8 flex flex-col border-r border-gray-700 relative overflow-y-auto">
+      
+      {/* NOUVEAU : Bouton flottant pour le mode Aperçu */}
+      {isPreview && (
+        <button 
+          onClick={() => setIsPreview(false)}
+          className="fixed top-4 right-4 z-50 bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-6 rounded-full shadow-2xl flex items-center gap-2 transition-transform hover:scale-105"
+        >
+          <span>←</span> Retour à l'édition
+        </button>
+      )}
+
+      {/* BARRE LATÉRALE : Se cache si isPreview est true */}
+      <div className={`${isPreview ? 'hidden' : 'w-1/3'} bg-gray-900 text-white p-8 flex flex-col border-r border-gray-700 relative overflow-y-auto transition-all duration-300`}>
+        
         {isLoading && (<div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center z-20"><div className="w-16 h-16 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mb-4"></div><p className="text-xl text-orange-500 font-bold">L'IA forge votre site...</p></div>)}
         
-        {/* NOUVEAU : Loader spécifique pour le paiement */}
         {paymentLoading && (
            <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center z-50">
              <div className="w-16 h-16 border-4 border-green-500 border-t-transparent rounded-full animate-spin mb-4"></div>
              <p className="text-xl text-green-400 font-bold">Préparation du paiement...</p>
-             <p className="text-gray-400 mt-2">Vous allez être redirigé vers PayTech.</p>
+             <p className="text-gray-400 mt-2">Vous allez être redirigé.</p>
            </div>
         )}
 
@@ -235,7 +233,14 @@ export default function Home() {
                 <h1 className="text-4xl font-bold text-orange-500">ForgeBuilder</h1>
                 <p className="text-gray-400 mt-2">Propulsez votre idée instantanément.</p>
             </div>
-            <div>
+            <div className="flex gap-2">
+                {/* NOUVEAU : Bouton Aperçu dans la sidebar */}
+                <button 
+                  onClick={() => setIsPreview(true)}
+                  className="text-xs bg-emerald-500 hover:bg-emerald-600 px-3 py-1 rounded font-bold"
+                >
+                  Voir le site
+                </button>
                 {checkingAuth ? (
                    <span className="text-xs text-gray-400 px-3 py-1 animate-pulse">Vérification...</span>
                 ) : user ? (
@@ -264,7 +269,6 @@ export default function Home() {
           <button type="submit" disabled={isLoading} className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-4 rounded-lg">{isLoading ? "Génération..." : "Générer mon site"}</button>
         </form>
 
-        {/* CORRECTION : On affiche la section si le nom est différent OU si l'utilisateur est connecté (permet de voir le bouton payer au retour) */}
         {(config.meta.siteName !== "ForgeBuilder" || user) && (
           <div className="border-t border-gray-700 pt-6 space-y-6 flex-1">
             <h2 className="text-xl font-bold text-gray-200">🎨 Palette & Contenu</h2>
@@ -429,7 +433,11 @@ export default function Home() {
           </div>
         )}
       </div>
-      <div className="w-2/3 overflow-y-auto bg-white"><DynamicRenderer sections={config.sections} meta={config.meta} /></div>
+
+      {/* ZONE DE PRÉVISUALISATION : Prend toute la largeur si isPreview est true */}
+      <div className={`${isPreview ? 'w-full' : 'w-2/3'} overflow-y-auto bg-white transition-all duration-300`}>
+        <DynamicRenderer sections={config.sections} meta={config.meta} />
+      </div>
     </main>
   );
 }
