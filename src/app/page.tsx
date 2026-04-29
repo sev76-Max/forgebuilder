@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import JSZip from 'jszip';
 import DynamicRenderer from "@/components/renderer/DynamicRenderer";
 import { SiteConfig } from "@/lib/site-config";
@@ -8,6 +8,13 @@ import { generateSiteFiles } from "@/lib/exporter";
 import { generatePackageJson, generatePageTsx, generateLayoutTsx, generateNextConfig, generateTailwindConfig, generatePublicManifest, generatePublicIcon, generateProjectReadme } from "@/lib/projectGenerator";
 import { getDemoImages } from "@/lib/unsplash";
 import { TEMPLATES } from "@/lib/templates";
+import { createClient } from '@supabase/supabase-js';
+
+// Initialisation Supabase
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 const DEFAULT_CONFIG: SiteConfig = {
   meta: {
@@ -30,6 +37,56 @@ export default function Home() {
   const [deployUrl, setDeployUrl] = useState("");
   const [isPro, setIsPro] = useState(false);
   const [paymentLoading, setPaymentLoading] = useState(false);
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setUser(session?.user ?? null);
+    };
+    getUser();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    // NOUVEAU : Vérifier le retour de paiement
+    const checkPaymentStatus = async () => {
+      const params = new URLSearchParams(window.location.search);
+      const paymentStatus = params.get('payment');
+      const projectId = params.get('projectId');
+
+      if (paymentStatus === 'success' && projectId) {
+        alert("Paiement réussi ! Votre projet est en cours de débloquage...");
+        // Nettoyer l'URL
+        window.history.replaceState({}, document.title, window.location.pathname);
+        // Idéalement, on ferait une requête pour vérifier le statut en BDD ici
+      } else if (paymentStatus === 'cancel') {
+        alert("Le paiement a été annulé.");
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    };
+    
+    checkPaymentStatus();
+
+    return () => { authListener.subscription.unsubscribe(); };
+  }, []);
+
+  const handleLogin = async () => {
+    const email = window.prompt("Entrez votre email pour recevoir le lien de connexion :");
+    if (!email) return;
+    const { error } = await supabase.auth.signInWithOtp({
+      email: email,
+      options: { emailRedirectTo: window.location.origin },
+    });
+    if (error) alert("Erreur : " + error.message);
+    else alert("Lien envoyé ! Vérifiez vos emails.");
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+  };
 
   const themes = [
     { name: "Nuit", icon: "🌙", theme: { primaryColor: "#6366f1", textColor: "#ffffff", secondaryTextColor: "#e5e7eb", featureTitleColor: "#ffffff", featureDescColor: "#d1d5db", brandColor: "#818cf8", logoColor: "#818cf8", logoStyle: "neon" } },
@@ -102,42 +159,111 @@ export default function Home() {
   const handleLoadProject = (e: React.ChangeEvent<HTMLInputElement>) => { const file = e.target.files?.[0]; if (file) { const reader = new FileReader(); reader.onload = (evt) => { try { const result = evt.target?.result; if (typeof result === 'string') { const parsed = JSON.parse(result); if (parsed.meta && parsed.sections) setConfig(parsed); } } catch (err) { alert("Fichier invalide"); } }; reader.readAsText(file); } };
   const handleResetProject = () => { if (confirm("Réinitialiser ?")) { setConfig(DEFAULT_CONFIG); setPrompt(""); setImageSearch(""); setFoundImages([]); } };
 
-  // EXPORTS AVEC SECURISATION DES NOMS
   const handleStaticExport = async () => { const zip = new JSZip(); const files = generateSiteFiles(config); for (const [filename, content] of Object.entries(files)) { zip.file(filename, content); } const content = await zip.generateAsync({ type: "blob" }); const url = window.URL.createObjectURL(content); const safeName = (config.meta?.siteName || "Site").replace(/\s+/g, '-'); const a = document.createElement('a'); a.href = url; a.download = `${safeName}.zip`; a.click(); };
-  
   const handleDynamicExport = async () => { const zip = new JSZip(); const src = zip.folder("src"); const app = src?.folder("app"); const pub = zip.folder("public"); zip.file("package.json", generatePackageJson(config)); zip.file("next.config.js", generateNextConfig()); zip.file("tailwind.config.js", generateTailwindConfig()); zip.file("README.md", generateProjectReadme(config)); app?.file("page.tsx", generatePageTsx(config)); app?.file("layout.tsx", generateLayoutTsx(config)); app?.file("globals.css", `@tailwind base;\n@tailwind components;\n@tailwind utilities;`); pub?.file("manifest.json", generatePublicManifest(config)); pub?.file("icon.svg", generatePublicIcon(config)); const content = await zip.generateAsync({ type: "blob" }); const safeName = (config.meta?.siteName || "Site").replace(/\s+/g, '-'); const a = document.createElement('a'); a.href = window.URL.createObjectURL(content); a.download = `${safeName}-nextjs.zip`; a.click(); };
   
-  // CORRECTION DEPLOIEMENT: Utilisation de generateSiteFiles pour Vercel (Site Statique)
   const handleVercelDeploy = async () => { 
     setDeploying('vercel'); setDeployUrl(""); 
     try { 
-      const files = generateSiteFiles(config); // On envoie les fichiers HTML statiques
+      const files = generateSiteFiles(config);
       const safeName = (config.meta?.siteName || "Site").replace(/\s+/g, '-'); 
       const res = await fetch('/api/deploy', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ provider: 'vercel', files, siteName: safeName }) }); const data = await res.json(); if (!res.ok) throw new Error(data.error || "Erreur serveur"); setDeployUrl(data.url); alert(`▲ Site publié : ${data.url}`); } catch (e: any) { alert(`Erreur : ${e.message}`); } finally { setDeploying(null); } 
   };
   
   const handleNetlifyDeploy = async () => { setDeploying('netlify'); setDeployUrl(""); try { const files = generateSiteFiles(config); const safeName = (config.meta?.siteName || "Site").replace(/\s+/g, '-'); const res = await fetch('/api/deploy', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ provider: 'netlify', files, siteName: safeName }) }); const data = await res.json(); if (!res.ok) throw new Error(data.error || "Erreur serveur"); setDeployUrl(data.url); alert(`🚀 Site publié : ${data.url}`); } catch (e: any) { alert(`Erreur : ${e.message}`); } finally { setDeploying(null); } };
 
-  // CORRECTION PAIEMENT: Affiche le message détaillé retourné par le serveur
+  // GESTION PAIEMENT
   const handlePayment = async () => { 
     setPaymentLoading(true); 
-    try { 
-      const res = await fetch('/api/payment/create', { 
+    
+    try {
+      if (!user) {
+        handleLogin(); 
+        setPaymentLoading(false);
+        return;
+      }
+
+      const userId = user.id;
+
+      const { data: projectData, error: projectError } = await supabase
+        .from('projects')
+        .insert({
+          user_id: userId,
+          name: config.meta.siteName || "Mon Projet",
+          content: config,
+          is_paid: false 
+        })
+        .select('id')
+        .single();
+
+      if (projectError) {
+        console.error("Erreur Supabase:", projectError);
+        if (projectError.message.includes('JWT expired') || projectError.message.includes('not authenticated')) {
+           await supabase.auth.signOut();
+           setUser(null);
+           alert("Votre session a expiré. Veuillez vous reconnecter.");
+        } else {
+           alert("Erreur base de données : " + projectError.message);
+        }
+        setPaymentLoading(false);
+        return;
+      }
+      
+      if (!projectData) {
+        alert("Erreur : Aucune donnée retournée.");
+        setPaymentLoading(false);
+        return;
+      }
+
+      const projectId = projectData.id;
+
+      const res = await fetch('/api/payment', { 
         method: 'POST', 
         headers: { 'Content-Type': 'application/json' }, 
-        body: JSON.stringify({ amount: 10000, userId: "user_demo_123" }) 
+        body: JSON.stringify({ 
+          amount: 10000, 
+          userId: userId, 
+          projectId: projectId 
+        }) 
       }); 
+      
       const data = await res.json(); 
-      if (data.success && data.paymentUrl) window.location.href = data.paymentUrl; 
-      else alert(data.message || "Impossible de lancer le paiement."); // MODIFICATION ICI
-    } catch (e) { alert("Erreur de connexion."); } finally { setPaymentLoading(false); } 
+      
+      if (data.success && data.paymentUrl) {
+        window.location.href = data.paymentUrl; 
+      } else {
+        alert(data.message || "Impossible de lancer le paiement.");
+      }
+    } catch (e) {
+      console.error(e);
+      alert("Erreur de connexion au serveur.");
+    } finally {
+      setPaymentLoading(false); 
+    }
   };
 
   return (
     <main className="flex h-screen">
       <div className="w-1/3 bg-gray-900 text-white p-8 flex flex-col border-r border-gray-700 relative overflow-y-auto">
         {isLoading && (<div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center z-20"><div className="w-16 h-16 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mb-4"></div><p className="text-xl text-orange-500 font-bold">L'IA forge votre site...</p></div>)}
-        <div className="mb-8"><h1 className="text-4xl font-bold text-orange-500">ForgeBuilder</h1><p className="text-gray-400 mt-2">Propulsez votre idée instantanément.</p></div>
+        <div className="mb-8 flex justify-between items-center">
+            <div>
+                <h1 className="text-4xl font-bold text-orange-500">ForgeBuilder</h1>
+                <p className="text-gray-400 mt-2">Propulsez votre idée instantanément.</p>
+            </div>
+            <div>
+                {user ? (
+                    <button onClick={handleLogout} className="text-xs bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded text-gray-300">
+                        Déconnexion
+                    </button>
+                ) : (
+                    <button onClick={handleLogin} className="text-xs bg-orange-500 hover:bg-orange-600 px-3 py-1 rounded font-bold">
+                        Connexion
+                    </button>
+                )}
+            </div>
+        </div>
+        
         <div className="mb-8 border border-gray-700 bg-gray-800/50 rounded-lg p-4 space-y-3">
           <h3 className="text-md font-semibold text-gray-300 uppercase">💾 Projet</h3>
           <div className="grid grid-cols-3 gap-2">
@@ -154,13 +280,11 @@ export default function Home() {
           <div className="border-t border-gray-700 pt-6 space-y-6 flex-1">
             <h2 className="text-xl font-bold text-gray-200">🎨 Palette & Contenu</h2>
 
-            {/* Thèmes */}
             <div className="border border-teal-700 bg-teal-900/20 rounded-lg p-4">
               <h3 className="text-md font-semibold text-teal-300 uppercase mb-3">✨ Thèmes</h3>
               <div className="grid grid-cols-2 gap-2">{themes.map((t, idx) => (<button key={idx} onClick={() => applyTheme(t)} className="flex items-center justify-center gap-2 p-2 rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-600 text-xs font-medium"><span>{t.icon}</span> {t.name}</button>))}</div>
             </div>
 
-            {/* SECTION TEMPLATES */}
             <div className="border border-pink-700 bg-pink-900/20 rounded-lg p-4">
               <h3 className="text-md font-semibold text-pink-300 uppercase mb-3">📦 Templates Rapides</h3>
               <div className="grid grid-cols-2 gap-2 max-h-60 overflow-y-auto pr-2">
@@ -168,7 +292,6 @@ export default function Home() {
               </div>
             </div>
 
-            {/* SECTION 1 : HERO */}
             <div className="border border-orange-700 bg-orange-900/20 rounded-lg p-4 space-y-3">
               <h3 onClick={() => scrollToSection('top')} className="text-md font-semibold text-orange-400 uppercase cursor-pointer hover:text-orange-300 flex justify-between items-center">1. Hero <span className="text-xs opacity-50">↓ Aller</span></h3>
               <input type="text" value={config.meta.siteName || ""} onChange={(e) => updateSiteName(e.target.value)} className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm" />
@@ -180,13 +303,11 @@ export default function Home() {
                 <div><label className="text-xs text-gray-400">Logo Texte</label><input type="text" maxLength={20} value={config.meta.theme.logoLetter || ""} onChange={(e) => updateTheme('logoLetter', e.target.value)} className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm mt-1 text-center font-bold" /></div>
                 <div><label className="text-xs text-gray-400">Style Logo</label><select value={config.meta.theme.logoStyle || "minimal"} onChange={(e) => updateTheme('logoStyle', e.target.value)} className="w-full h-9 rounded bg-gray-700 border border-gray-600 px-2 text-xs mt-1"><option value="minimal">Simple</option><option value="circle">Cercle</option><option value="square">Carré</option><option value="gradient">Dégradé</option><option value="drawn">Dessiné</option><option value="neon">Néon</option><option value="stamp">Cachet</option><option value="embossed">Embouti</option></select></div>
               </div>
-
               <div className="flex gap-2 items-center">
                 <label className="text-xs text-gray-400 w-20">Couleur Logo</label>
                 <input type="color" value={config.meta.theme.logoColor || config.meta.theme.brandColor || "#F97316"} onChange={(e) => updateTheme('logoColor', e.target.value)} className="w-8 h-6 rounded cursor-pointer bg-transparent border p-0.5" />
                 <input type="text" value={config.meta.theme.logoColor || config.meta.theme.brandColor || "#F97316"} onChange={(e) => updateTheme('logoColor', e.target.value)} className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs uppercase" />
               </div>
-
               <div className="space-y-1">
                 <label className="text-xs text-gray-400">Titre Principal</label>
                 <div className="flex gap-2">
@@ -208,7 +329,6 @@ export default function Home() {
               {getActionType(config.sections.find(s => s.type === 'hero')?.data?.ctaLink) !== 'anchor' && (<input type="text" value={getActionValue()} onChange={(e) => handleActionValueChange(e.target.value)} placeholder="Valeur..." className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-xs mt-1" />)}
             </div>
 
-            {/* SECTION 2 : STYLES GLOBAUX */}
             <div className="border border-purple-700 bg-purple-900/20 rounded-lg p-4 space-y-2">
               <h3 className="text-md font-semibold text-purple-400 uppercase">2. Styles Globaux</h3>
               <div className="flex gap-2 items-center">
@@ -218,7 +338,6 @@ export default function Home() {
               </div>
             </div>
 
-            {/* SECTION 3 : SERVICES */}
             <div className="border border-green-700 bg-green-900/20 rounded-lg p-4 space-y-2">
               <h3 onClick={() => scrollToSection('services')} className="text-md font-semibold text-green-400 uppercase cursor-pointer hover:text-green-300 flex justify-between items-center">3. Services <span className="text-xs opacity-50">↓ Aller</span></h3>
               {config.sections.find(s => s.type === 'features')?.data?.items?.map((item: any, idx: number) => (
@@ -229,7 +348,6 @@ export default function Home() {
               ))}
             </div>
 
-            {/* SECTION PRODUITS */}
             {config.sections.find(s => s.type === 'products') && (
               <div className="border border-amber-700 bg-amber-900/20 rounded-lg p-4 space-y-2">
                 <h3 className="text-md font-semibold text-amber-400 uppercase">🛍️ Produits</h3>
@@ -249,7 +367,6 @@ export default function Home() {
               </div>
             )}
 
-            {/* SECTION 4 : TÉMOIGNAGES */}
             {config.sections.find(s => s.type === 'testimonials') && (
               <div className="border border-yellow-700 bg-yellow-900/20 rounded-lg p-4 space-y-2">
                 <h3 className="text-md font-semibold text-yellow-400 uppercase">4. Témoignages</h3>
@@ -262,7 +379,6 @@ export default function Home() {
               </div>
             )}
 
-            {/* SECTION 5 : BLOG */}
             {config.sections.find(s => s.type === 'blog') && (
               <div className="border border-red-700 bg-red-900/20 rounded-lg p-4 space-y-2">
                 <h3 className="text-md font-semibold text-red-400 uppercase">5. Blog</h3>
@@ -275,7 +391,6 @@ export default function Home() {
               </div>
             )}
 
-            {/* SECTION 6 : CONTACT & FOOTER */}
             <div className="border border-cyan-700 bg-cyan-900/20 rounded-lg p-4 space-y-2">
               <h3 className="text-md font-semibold text-cyan-400 uppercase">6. Contact & Footer</h3>
               <div className="space-y-1">
@@ -292,16 +407,21 @@ export default function Home() {
               </div>
             </div>
 
-            {/* SECTION DÉPLOIEMENT */}
             <div className="border border-gray-500 bg-gray-800/50 rounded-lg p-4 space-y-3">
               <h3 className="text-md font-semibold text-white uppercase flex items-center gap-2"><span>☁️</span> Mise en ligne</h3>
               {!isPro ? (
                 <div className="space-y-2">
                   <div className="bg-gray-700/50 p-3 rounded border border-gray-600 text-center">
                     <p className="text-sm font-bold text-white">Verrouillé</p>
-                    <button onClick={handlePayment} disabled={paymentLoading} className="w-full mt-2 bg-gradient-to-r from-orange-500 to-yellow-500 text-white font-bold py-3 px-4 rounded-lg text-sm shadow-lg hover:opacity-90 transition disabled:opacity-50">
-                      {paymentLoading ? "Chargement..." : "Débloquer 10 000 FCFA"}
-                    </button>
+                    {!user ? (
+                       <button onClick={handleLogin} className="w-full mt-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold py-3 px-4 rounded-lg text-sm shadow-lg hover:opacity-90 transition">
+                         Se connecter pour débloquer
+                       </button>
+                    ) : (
+                       <button onClick={handlePayment} disabled={paymentLoading} className="w-full mt-2 bg-gradient-to-r from-orange-500 to-yellow-500 text-white font-bold py-3 px-4 rounded-lg text-sm shadow-lg hover:opacity-90 transition disabled:opacity-50">
+                         {paymentLoading ? "Chargement..." : "Débloquer 10 000 FCFA"}
+                       </button>
+                    )}
                     <p className="text-xs text-gray-500 mt-2">PayTech (Wave/Orange/Card)</p>
                   </div>
                 </div>
