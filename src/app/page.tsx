@@ -38,13 +38,14 @@ export default function Home() {
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
-  
-  // NOUVEAU : État pour le mode aperçu plein écran
   const [isPreview, setIsPreview] = useState(false);
 
   const launchPaymentProcess = async (userId: string) => {
+    // Sécurité anti-boucle
     const intent = localStorage.getItem('forge_intent');
     if (intent !== 'pay') return;
+    
+    // On efface l'intention immédiatement
     localStorage.removeItem('forge_intent');
     
     setPaymentLoading(true);
@@ -193,19 +194,23 @@ export default function Home() {
   const handleVercelDeploy = async () => { setDeploying('vercel'); setDeployUrl(""); try { const files = generateSiteFiles(config); const safeName = (config.meta?.siteName || "Site").replace(/\s+/g, '-'); const res = await fetch('/api/deploy', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ provider: 'vercel', files, siteName: safeName }) }); const data = await res.json(); if (!res.ok) throw new Error(data.error || "Erreur serveur"); setDeployUrl(data.url); alert(`▲ Site publié : ${data.url}`); } catch (e: any) { alert(`Erreur : ${e.message}`); } finally { setDeploying(null); } };
   const handleNetlifyDeploy = async () => { setDeploying('netlify'); setDeployUrl(""); try { const files = generateSiteFiles(config); const safeName = (config.meta?.siteName || "Site").replace(/\s+/g, '-'); const res = await fetch('/api/deploy', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ provider: 'netlify', files, siteName: safeName }) }); const data = await res.json(); if (!res.ok) throw new Error(data.error || "Erreur serveur"); setDeployUrl(data.url); alert(`🚀 Site publié : ${data.url}`); } catch (e: any) { alert(`Erreur : ${e.message}`); } finally { setDeploying(null); } };
 
+  // CORRECTION ICI : Ajout du flag intent même si l'utilisateur est déjà connecté
   const handlePayment = async () => { 
     if (!user) {
       handleLogin(); 
       return;
     }
+    // On sauvegarde le projet
     localStorage.setItem('forge_pending_config', JSON.stringify(config));
+    // ON ACTIVE L'INTENTION (C'était le bug)
+    localStorage.setItem('forge_intent', 'pay');
+    
     launchPaymentProcess(user.id);
   };
 
   return (
     <main className="flex h-screen">
       
-      {/* NOUVEAU : Bouton flottant pour le mode Aperçu */}
       {isPreview && (
         <button 
           onClick={() => setIsPreview(false)}
@@ -215,7 +220,6 @@ export default function Home() {
         </button>
       )}
 
-      {/* BARRE LATÉRALE : Se cache si isPreview est true */}
       <div className={`${isPreview ? 'hidden' : 'w-1/3'} bg-gray-900 text-white p-8 flex flex-col border-r border-gray-700 relative overflow-y-auto transition-all duration-300`}>
         
         {isLoading && (<div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center z-20"><div className="w-16 h-16 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mb-4"></div><p className="text-xl text-orange-500 font-bold">L'IA forge votre site...</p></div>)}
@@ -234,7 +238,6 @@ export default function Home() {
                 <p className="text-gray-400 mt-2">Propulsez votre idée instantanément.</p>
             </div>
             <div className="flex gap-2">
-                {/* NOUVEAU : Bouton Aperçu dans la sidebar */}
                 <button 
                   onClick={() => setIsPreview(true)}
                   className="text-xs bg-emerald-500 hover:bg-emerald-600 px-3 py-1 rounded font-bold"
@@ -398,7 +401,7 @@ export default function Home() {
                     <p className="text-sm font-bold text-white">Verrouillé</p>
                     {checkingAuth ? (
                        <button disabled className="w-full mt-2 bg-gray-500 text-white font-bold py-3 px-4 rounded-lg text-sm cursor-wait animate-pulse">
-                         Vérification de la session...
+                         Vérification...
                        </button>
                     ) : !user ? (
                        <button onClick={handlePayment} className="w-full mt-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold py-3 px-4 rounded-lg text-sm shadow-lg hover:opacity-90 transition">
@@ -433,8 +436,6 @@ export default function Home() {
           </div>
         )}
       </div>
-
-      {/* ZONE DE PRÉVISUALISATION : Prend toute la largeur si isPreview est true */}
       <div className={`${isPreview ? 'w-full' : 'w-2/3'} overflow-y-auto bg-white transition-all duration-300`}>
         <DynamicRenderer sections={config.sections} meta={config.meta} />
       </div>
