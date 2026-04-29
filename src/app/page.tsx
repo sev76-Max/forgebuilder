@@ -42,6 +42,51 @@ export default function Home() {
   const [user, setUser] = useState<any>(null);
   const [checkingAuth, setCheckingAuth] = useState(true); 
 
+  // NOUVEAU : Fonction pour lancer le paiement (déplacée en haut pour être réutilisable)
+  const launchPaymentProcess = async (userId: string) => {
+    setPaymentLoading(true);
+    try {
+      const { data: projectData, error: projectError } = await supabase
+        .from('projects')
+        .insert({
+          user_id: userId,
+          name: config.meta.siteName || "Mon Projet",
+          content: config,
+          is_paid: false 
+        })
+        .select('id')
+        .single();
+
+      if (projectError) throw projectError;
+      if (!projectData) throw new Error("Erreur création projet");
+
+      const projectId = projectData.id;
+
+      const res = await fetch('/api/payment', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify({ 
+          amount: 10000, 
+          userId: userId, 
+          projectId: projectId 
+        }) 
+      }); 
+      
+      const data = await res.json(); 
+      
+      if (data.success && data.paymentUrl) {
+        window.location.href = data.paymentUrl; 
+      } else {
+        alert(data.message || "Impossible de lancer le paiement.");
+        setPaymentLoading(false);
+      }
+    } catch (e) {
+      console.error(e);
+      alert("Erreur lors de l'initialisation du paiement.");
+      setPaymentLoading(false);
+    }
+  };
+
   useEffect(() => {
     const getUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -50,10 +95,21 @@ export default function Home() {
     };
     
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user ?? null);
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
       setCheckingAuth(false);
+      
       if (event === 'SIGNED_IN') {
          window.history.replaceState({}, document.title, window.location.pathname);
+         
+         // NOUVEAU : Si l'utilisateur vient de se connecter et avait l'intention de payer
+         if (sessionStorage.getItem('intent') === 'pay') {
+           sessionStorage.removeItem('intent'); // On efface l'intention
+           if (currentUser) {
+             // On lance le paiement automatiquement
+             launchPaymentProcess(currentUser.id);
+           }
+         }
       }
     });
 
@@ -78,12 +134,16 @@ export default function Home() {
   const handleLogin = async () => {
     const email = window.prompt("Entrez votre email pour recevoir le lien de connexion :");
     if (!email) return;
+    
+    // NOUVEAU : On mémorise que l'utilisateur veut payer
+    sessionStorage.setItem('intent', 'pay');
+
     const { error } = await supabase.auth.signInWithOtp({
       email: email,
       options: { emailRedirectTo: window.location.origin },
     });
     if (error) alert("Erreur : " + error.message);
-    else alert("Lien envoyé ! Vérifiez vos emails.");
+    else alert("Lien envoyé ! Cliquez dessus pour finaliser le paiement.");
   };
 
   const handleLogout = async () => {
@@ -176,72 +236,11 @@ export default function Home() {
   const handleNetlifyDeploy = async () => { setDeploying('netlify'); setDeployUrl(""); try { const files = generateSiteFiles(config); const safeName = (config.meta?.siteName || "Site").replace(/\s+/g, '-'); const res = await fetch('/api/deploy', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ provider: 'netlify', files, siteName: safeName }) }); const data = await res.json(); if (!res.ok) throw new Error(data.error || "Erreur serveur"); setDeployUrl(data.url); alert(`🚀 Site publié : ${data.url}`); } catch (e: any) { alert(`Erreur : ${e.message}`); } finally { setDeploying(null); } };
 
   const handlePayment = async () => { 
-    setPaymentLoading(true); 
-    
-    try {
-      if (!user) {
-        handleLogin(); 
-        setPaymentLoading(false);
-        return;
-      }
-
-      const userId = user.id;
-
-      const { data: projectData, error: projectError } = await supabase
-        .from('projects')
-        .insert({
-          user_id: userId,
-          name: config.meta.siteName || "Mon Projet",
-          content: config,
-          is_paid: false 
-        })
-        .select('id')
-        .single();
-
-      if (projectError) {
-        console.error("Erreur Supabase:", projectError);
-        if (projectError.message.includes('JWT expired') || projectError.message.includes('not authenticated')) {
-           await supabase.auth.signOut();
-           setUser(null);
-           alert("Votre session a expiré. Veuillez vous reconnecter.");
-        } else {
-           alert("Erreur base de données : " + projectError.message);
-        }
-        setPaymentLoading(false);
-        return;
-      }
-      
-      if (!projectData) {
-        alert("Erreur : Aucune donnée retournée.");
-        setPaymentLoading(false);
-        return;
-      }
-
-      const projectId = projectData.id;
-
-      const res = await fetch('/api/payment', { 
-        method: 'POST', 
-        headers: { 'Content-Type': 'application/json' }, 
-        body: JSON.stringify({ 
-          amount: 10000, 
-          userId: userId, 
-          projectId: projectId 
-        }) 
-      }); 
-      
-      const data = await res.json(); 
-      
-      if (data.success && data.paymentUrl) {
-        window.location.href = data.paymentUrl; 
-      } else {
-        alert(data.message || "Impossible de lancer le paiement.");
-      }
-    } catch (e) {
-      console.error(e);
-      alert("Erreur de connexion au serveur.");
-    } finally {
-      setPaymentLoading(false); 
+    if (!user) {
+      handleLogin(); 
+      return;
     }
+    await launchPaymentProcess(user.id);
   };
 
   return (
@@ -434,12 +433,12 @@ export default function Home() {
                          Vérification...
                        </button>
                     ) : !user ? (
-                       <button onClick={handleLogin} className="w-full mt-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold py-3 px-4 rounded-lg text-sm shadow-lg hover:opacity-90 transition">
-                         Se connecter pour débloquer
+                       <button onClick={handlePayment} className="w-full mt-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold py-3 px-4 rounded-lg text-sm shadow-lg hover:opacity-90 transition">
+                         Se connecter pour payer
                        </button>
                     ) : (
                        <button onClick={handlePayment} disabled={paymentLoading} className="w-full mt-2 bg-gradient-to-r from-orange-500 to-yellow-500 text-white font-bold py-3 px-4 rounded-lg text-sm shadow-lg hover:opacity-90 transition disabled:opacity-50">
-                         {paymentLoading ? "Chargement..." : "Débloquer 10 000 FCFA"}
+                         {paymentLoading ? "Redirection..." : "Débloquer 10 000 FCFA"}
                        </button>
                     )}
                     <p className="text-xs text-gray-500 mt-2">PayTech (Wave/Orange/Card)</p>
