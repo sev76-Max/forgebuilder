@@ -10,7 +10,6 @@ import { getDemoImages } from "@/lib/unsplash";
 import { TEMPLATES } from "@/lib/templates";
 import { createClient } from '@supabase/supabase-js';
 
-// Initialisation Supabase
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -37,13 +36,18 @@ export default function Home() {
   const [deployUrl, setDeployUrl] = useState("");
   const [isPro, setIsPro] = useState(false);
   const [paymentLoading, setPaymentLoading] = useState(false);
-  
-  // États pour l'authentification
   const [user, setUser] = useState<any>(null);
-  const [checkingAuth, setCheckingAuth] = useState(true); 
+  const [checkingAuth, setCheckingAuth] = useState(true);
 
-  // NOUVEAU : Fonction pour lancer le paiement (déplacée en haut pour être réutilisable)
+  // Fonction principale de paiement
   const launchPaymentProcess = async (userId: string) => {
+    // Sécurité pour éviter les doubles lancements
+    const intent = localStorage.getItem('forge_intent');
+    if (intent !== 'pay') return;
+
+    // On efface l'intention immédiatement pour éviter les boucles
+    localStorage.removeItem('forge_intent');
+    
     setPaymentLoading(true);
     try {
       const { data: projectData, error: projectError } = await supabase
@@ -88,12 +92,18 @@ export default function Home() {
   };
 
   useEffect(() => {
-    const getUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+    // 1. Récupération de la session initiale
+    supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
       setCheckingAuth(false);
-    };
-    
+      
+      // CORRECTION : Si l'utilisateur est déjà là et qu'il a l'intention de payer
+      if (session?.user && localStorage.getItem('forge_intent') === 'pay') {
+        launchPaymentProcess(session.user.id);
+      }
+    });
+
+    // 2. Écoute des changements d'état (connexion via lien magique)
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
       const currentUser = session?.user ?? null;
       setUser(currentUser);
@@ -102,32 +112,25 @@ export default function Home() {
       if (event === 'SIGNED_IN') {
          window.history.replaceState({}, document.title, window.location.pathname);
          
-         // NOUVEAU : Si l'utilisateur vient de se connecter et avait l'intention de payer
-         if (sessionStorage.getItem('intent') === 'pay') {
-           sessionStorage.removeItem('intent'); // On efface l'intention
+         // CORRECTION : Si l'utilisateur vient de se connecter et veut payer
+         if (localStorage.getItem('forge_intent') === 'pay') {
            if (currentUser) {
-             // On lance le paiement automatiquement
              launchPaymentProcess(currentUser.id);
            }
          }
       }
     });
 
-    const checkPaymentStatus = async () => {
-      const params = new URLSearchParams(window.location.search);
-      const paymentStatus = params.get('payment');
-      const projectId = params.get('projectId');
-      if (paymentStatus === 'success' && projectId) {
-        alert("Paiement réussi ! Votre projet est en cours de débloquage...");
-        window.history.replaceState({}, document.title, window.location.pathname);
-      } else if (paymentStatus === 'cancel') {
-        alert("Le paiement a été annulé.");
-        window.history.replaceState({}, document.title, window.location.pathname);
-      }
-    };
-    
-    getUser();
-    checkPaymentStatus();
+    // 3. Vérification retour PayTech
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('payment') === 'success') {
+      alert("Paiement réussi ! Votre projet est débloqué.");
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } else if (params.get('payment') === 'cancel') {
+      alert("Le paiement a été annulé.");
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
     return () => { authListener.subscription.unsubscribe(); };
   }, []);
 
@@ -135,15 +138,15 @@ export default function Home() {
     const email = window.prompt("Entrez votre email pour recevoir le lien de connexion :");
     if (!email) return;
     
-    // NOUVEAU : On mémorise que l'utilisateur veut payer
-    sessionStorage.setItem('intent', 'pay');
+    // On utilise localStorage qui persiste entre les onglets
+    localStorage.setItem('forge_intent', 'pay');
 
     const { error } = await supabase.auth.signInWithOtp({
       email: email,
       options: { emailRedirectTo: window.location.origin },
     });
     if (error) alert("Erreur : " + error.message);
-    else alert("Lien envoyé ! Cliquez dessus pour finaliser le paiement.");
+    else alert("Lien envoyé ! Cliquez sur le lien pour finaliser le paiement.");
   };
 
   const handleLogout = async () => {
@@ -171,43 +174,9 @@ export default function Home() {
   const updateAddress = (value: string) => setConfig(prev => ({ ...prev, meta: { ...prev.meta, address: value } }));
   const updateHeroLink = (value: string) => setConfig(prev => ({ ...prev, sections: prev.sections.map(s => s.type === 'hero' ? { ...s, data: { ...s.data, ctaLink: value } } : s) }));
   const updateListItem = (type: string, idx: number, key: string, value: any) => setConfig(prev => ({ ...prev, sections: prev.sections.map(s => { if (s.type === type && s.data.items) { const newItems = s.data.items.map((it: any, i: number) => i === idx ? { ...it, [key]: value } : it); return { ...s, data: { ...s.data, items: newItems } }; } return s; }) }));
-  
-  const addProduct = () => {
-    setConfig(prev => ({
-      ...prev,
-      sections: prev.sections.map(s => {
-        if (s.type === 'products') {
-          const newItems = [...(s.data.items || []), { title: "Nouveau Produit", price: "10 000 FCFA", description: "Description du produit", imageUrl: "" }];
-          return { ...s, data: { ...s.data, items: newItems } };
-        }
-        return s;
-      })
-    }));
-  };
-
-  const removeProduct = (idx: number) => {
-    setConfig(prev => ({
-      ...prev,
-      sections: prev.sections.map(s => {
-        if (s.type === 'products' && s.data.items) {
-          const newItems = s.data.items.filter((_: any, i: number) => i !== idx);
-          return { ...s, data: { ...s.data, items: newItems } };
-        }
-        return s;
-      })
-    }));
-  };
-
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, sectionType: string, itemIndex?: number) => {
-    const file = e.target.files?.[0]; if (!file) return;
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const base64 = reader.result as string;
-      if (sectionType === 'logo') setConfig(prev => ({ ...prev, meta: { ...prev.meta, theme: { ...prev.meta.theme, logoUrl: base64 } } }));
-      else setConfig(prev => ({ ...prev, sections: prev.sections.map(s => { if (s.type === sectionType) { if (itemIndex !== undefined && s.data.items) { const key = sectionType === 'testimonials' ? 'avatar' : 'imageUrl'; const newItems = s.data.items.map((it: any, i: number) => i === itemIndex ? { ...it, [key]: base64 } : it); return { ...s, data: { ...s.data, items: newItems } }; } return { ...s, data: { ...s.data, imageUrl: base64 } }; } if (sectionType === 'hero' && s.type === 'hero') return { ...s, data: { ...s.data, imageUrl: base64 } }; return s; }) }));
-    };
-    reader.readAsDataURL(file);
-  };
+  const addProduct = () => { setConfig(prev => ({ ...prev, sections: prev.sections.map(s => { if (s.type === 'products') { const newItems = [...(s.data.items || []), { title: "Nouveau Produit", price: "10 000 FCFA", description: "Description du produit", imageUrl: "" }]; return { ...s, data: { ...s.data, items: newItems } }; } return s; }) })); };
+  const removeProduct = (idx: number) => { setConfig(prev => ({ ...prev, sections: prev.sections.map(s => { if (s.type === 'products' && s.data.items) { const newItems = s.data.items.filter((_: any, i: number) => i !== idx); return { ...s, data: { ...s.data, items: newItems } }; } return s; }) })); };
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, sectionType: string, itemIndex?: number) => { const file = e.target.files?.[0]; if (!file) return; const reader = new FileReader(); reader.onloadend = () => { const base64 = reader.result as string; if (sectionType === 'logo') setConfig(prev => ({ ...prev, meta: { ...prev.meta, theme: { ...prev.meta.theme, logoUrl: base64 } } })); else setConfig(prev => ({ ...prev, sections: prev.sections.map(s => { if (s.type === sectionType) { if (itemIndex !== undefined && s.data.items) { const key = sectionType === 'testimonials' ? 'avatar' : 'imageUrl'; const newItems = s.data.items.map((it: any, i: number) => i === itemIndex ? { ...it, [key]: base64 } : it); return { ...s, data: { ...s.data, items: newItems } }; } return { ...s, data: { ...s.data, imageUrl: base64 } }; } if (sectionType === 'hero' && s.type === 'hero') return { ...s, data: { ...s.data, imageUrl: base64 } }; return s; }) })); }; reader.readAsDataURL(file); };
   const getActionType = (link: string | undefined) => { if (!link || link === "#") return "anchor"; if (link.startsWith("https://wa.me")) return "whatsapp"; if (link.startsWith("mailto:")) return "mailto"; if (link.startsWith("tel:")) return "tel"; return "url"; };
   const handleActionTypeChange = (type: string) => { let newLink = "#"; switch (type) { case 'whatsapp': newLink = "https://wa.me/33?text=Bonjour"; break; case 'mailto': newLink = "mailto:contact@email.com"; break; case 'tel': newLink = "tel:+33"; break; case 'url': newLink = "https://"; break; } updateHeroLink(newLink); };
   const handleActionValueChange = (value: string) => { const type = getActionType(config.sections.find(s => s.type === 'hero')?.data?.ctaLink); let newLink = value; if (type === 'tel') newLink = `tel:${value}`; else if (type === 'mailto') newLink = `mailto:${value}`; else if (type === 'whatsapp') newLink = `https://wa.me/${value}?text=Bonjour`; updateHeroLink(newLink); };
@@ -221,18 +190,9 @@ export default function Home() {
   const handleSaveProject = () => { const dataStr = JSON.stringify(config, null, 2); const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr); const exportFileDefaultName = `${(config.meta?.siteName || "projet").replace(/\s+/g, '-')}.json`; const linkElement = document.createElement('a'); linkElement.setAttribute('href', dataUri); linkElement.setAttribute('download', exportFileDefaultName); linkElement.click(); };
   const handleLoadProject = (e: React.ChangeEvent<HTMLInputElement>) => { const file = e.target.files?.[0]; if (file) { const reader = new FileReader(); reader.onload = (evt) => { try { const result = evt.target?.result; if (typeof result === 'string') { const parsed = JSON.parse(result); if (parsed.meta && parsed.sections) setConfig(parsed); } } catch (err) { alert("Fichier invalide"); } }; reader.readAsText(file); } };
   const handleResetProject = () => { if (confirm("Réinitialiser ?")) { setConfig(DEFAULT_CONFIG); setPrompt(""); setImageSearch(""); setFoundImages([]); } };
-
   const handleStaticExport = async () => { const zip = new JSZip(); const files = generateSiteFiles(config); for (const [filename, content] of Object.entries(files)) { zip.file(filename, content); } const content = await zip.generateAsync({ type: "blob" }); const url = window.URL.createObjectURL(content); const safeName = (config.meta?.siteName || "Site").replace(/\s+/g, '-'); const a = document.createElement('a'); a.href = url; a.download = `${safeName}.zip`; a.click(); };
   const handleDynamicExport = async () => { const zip = new JSZip(); const src = zip.folder("src"); const app = src?.folder("app"); const pub = zip.folder("public"); zip.file("package.json", generatePackageJson(config)); zip.file("next.config.js", generateNextConfig()); zip.file("tailwind.config.js", generateTailwindConfig()); zip.file("README.md", generateProjectReadme(config)); app?.file("page.tsx", generatePageTsx(config)); app?.file("layout.tsx", generateLayoutTsx(config)); app?.file("globals.css", `@tailwind base;\n@tailwind components;\n@tailwind utilities;`); pub?.file("manifest.json", generatePublicManifest(config)); pub?.file("icon.svg", generatePublicIcon(config)); const content = await zip.generateAsync({ type: "blob" }); const safeName = (config.meta?.siteName || "Site").replace(/\s+/g, '-'); const a = document.createElement('a'); a.href = window.URL.createObjectURL(content); a.download = `${safeName}-nextjs.zip`; a.click(); };
-  
-  const handleVercelDeploy = async () => { 
-    setDeploying('vercel'); setDeployUrl(""); 
-    try { 
-      const files = generateSiteFiles(config);
-      const safeName = (config.meta?.siteName || "Site").replace(/\s+/g, '-'); 
-      const res = await fetch('/api/deploy', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ provider: 'vercel', files, siteName: safeName }) }); const data = await res.json(); if (!res.ok) throw new Error(data.error || "Erreur serveur"); setDeployUrl(data.url); alert(`▲ Site publié : ${data.url}`); } catch (e: any) { alert(`Erreur : ${e.message}`); } finally { setDeploying(null); } 
-  };
-  
+  const handleVercelDeploy = async () => { setDeploying('vercel'); setDeployUrl(""); try { const files = generateSiteFiles(config); const safeName = (config.meta?.siteName || "Site").replace(/\s+/g, '-'); const res = await fetch('/api/deploy', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ provider: 'vercel', files, siteName: safeName }) }); const data = await res.json(); if (!res.ok) throw new Error(data.error || "Erreur serveur"); setDeployUrl(data.url); alert(`▲ Site publié : ${data.url}`); } catch (e: any) { alert(`Erreur : ${e.message}`); } finally { setDeploying(null); } };
   const handleNetlifyDeploy = async () => { setDeploying('netlify'); setDeployUrl(""); try { const files = generateSiteFiles(config); const safeName = (config.meta?.siteName || "Site").replace(/\s+/g, '-'); const res = await fetch('/api/deploy', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ provider: 'netlify', files, siteName: safeName }) }); const data = await res.json(); if (!res.ok) throw new Error(data.error || "Erreur serveur"); setDeployUrl(data.url); alert(`🚀 Site publié : ${data.url}`); } catch (e: any) { alert(`Erreur : ${e.message}`); } finally { setDeploying(null); } };
 
   const handlePayment = async () => { 
@@ -284,24 +244,18 @@ export default function Home() {
         {config.meta.siteName !== "ForgeBuilder" && (
           <div className="border-t border-gray-700 pt-6 space-y-6 flex-1">
             <h2 className="text-xl font-bold text-gray-200">🎨 Palette & Contenu</h2>
-
-            {/* Thèmes */}
             <div className="border border-teal-700 bg-teal-900/20 rounded-lg p-4">
               <h3 className="text-md font-semibold text-teal-300 uppercase mb-3">✨ Thèmes</h3>
               <div className="grid grid-cols-2 gap-2">{themes.map((t, idx) => (<button key={idx} onClick={() => applyTheme(t)} className="flex items-center justify-center gap-2 p-2 rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-600 text-xs font-medium"><span>{t.icon}</span> {t.name}</button>))}</div>
             </div>
-
-            {/* Templates */}
             <div className="border border-pink-700 bg-pink-900/20 rounded-lg p-4">
               <h3 className="text-md font-semibold text-pink-300 uppercase mb-3">📦 Templates Rapides</h3>
               <div className="grid grid-cols-2 gap-2 max-h-60 overflow-y-auto pr-2">
                 {TEMPLATES.map((t, idx) => (<button key={idx} onClick={() => setConfig(t.config)} className="flex flex-col items-center justify-center p-2 rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-600 text-xs font-medium transition-all hover:scale-105 group"><span className="text-2xl mb-1 group-hover:scale-110 transition-transform">{t.icon}</span><span className="text-gray-200 truncate w-full text-center">{t.name}</span></button>))}
               </div>
             </div>
-
-            {/* Hero */}
             <div className="border border-orange-700 bg-orange-900/20 rounded-lg p-4 space-y-3">
-              <h3 onClick={() => scrollToSection('top')} className="text-md font-semibold text-orange-400 uppercase cursor-pointer hover:text-orange-300 flex justify-between items-center">1. Hero <span className="text-xs opacity-50">↓ Aller</span></h3>
+              <h3 className="text-md font-semibold text-orange-400 uppercase cursor-pointer hover:text-orange-300 flex justify-between items-center">1. Hero <span className="text-xs opacity-50">↓ Aller</span></h3>
               <input type="text" value={config.meta.siteName || ""} onChange={(e) => updateSiteName(e.target.value)} className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm" />
               <div className="space-y-1">
                 <label className="text-xs text-gray-400">Logo (Image)</label>
@@ -336,8 +290,6 @@ export default function Home() {
               <select value={getActionType(config.sections.find(s => s.type === 'hero')?.data?.ctaLink)} onChange={(e) => handleActionTypeChange(e.target.value)} className="w-full h-8 rounded bg-gray-700 border border-gray-600 px-2 text-xs mt-1"><option value="tel">📞 Appel</option><option value="whatsapp">💬 WhatsApp</option><option value="mailto">✉️ Email</option><option value="anchor">⬇️ Formulaire</option></select>
               {getActionType(config.sections.find(s => s.type === 'hero')?.data?.ctaLink) !== 'anchor' && (<input type="text" value={getActionValue()} onChange={(e) => handleActionValueChange(e.target.value)} placeholder="Valeur..." className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-xs mt-1" />)}
             </div>
-
-            {/* Styles Globaux */}
             <div className="border border-purple-700 bg-purple-900/20 rounded-lg p-4 space-y-2">
               <h3 className="text-md font-semibold text-purple-400 uppercase">2. Styles Globaux</h3>
               <div className="flex gap-2 items-center">
@@ -346,10 +298,8 @@ export default function Home() {
                 <input type="text" value={config.meta.theme.featureTitleColor || '#111111'} onChange={(e) => updateTheme('featureTitleColor', e.target.value)} className="flex-1 bg-gray-700 rounded px-2 py-1 text-xs" />
               </div>
             </div>
-
-            {/* Services */}
             <div className="border border-green-700 bg-green-900/20 rounded-lg p-4 space-y-2">
-              <h3 onClick={() => scrollToSection('services')} className="text-md font-semibold text-green-400 uppercase cursor-pointer hover:text-green-300 flex justify-between items-center">3. Services <span className="text-xs opacity-50">↓ Aller</span></h3>
+              <h3 className="text-md font-semibold text-green-400 uppercase cursor-pointer hover:text-green-300 flex justify-between items-center">3. Services <span className="text-xs opacity-50">↓ Aller</span></h3>
               {config.sections.find(s => s.type === 'features')?.data?.items?.map((item: any, idx: number) => (
                 <div key={idx} className="border border-gray-700 p-2 rounded space-y-1 bg-gray-800/50">
                   <input type="text" value={item.title || ""} onChange={(e) => updateListItem('features', idx, 'title', e.target.value)} className="w-full bg-gray-700 rounded px-2 py-1 text-xs" />
@@ -357,8 +307,6 @@ export default function Home() {
                 </div>
               ))}
             </div>
-
-            {/* Produits */}
             {config.sections.find(s => s.type === 'products') && (
               <div className="border border-amber-700 bg-amber-900/20 rounded-lg p-4 space-y-2">
                 <h3 className="text-md font-semibold text-amber-400 uppercase">🛍️ Produits</h3>
@@ -377,8 +325,6 @@ export default function Home() {
                 <button onClick={addProduct} className="w-full mt-2 p-2 bg-amber-600 hover:bg-amber-700 rounded text-xs font-bold transition-colors">+ Ajouter un produit</button>
               </div>
             )}
-
-            {/* Témoignages */}
             {config.sections.find(s => s.type === 'testimonials') && (
               <div className="border border-yellow-700 bg-yellow-900/20 rounded-lg p-4 space-y-2">
                 <h3 className="text-md font-semibold text-yellow-400 uppercase">4. Témoignages</h3>
@@ -390,8 +336,6 @@ export default function Home() {
                 ))}
               </div>
             )}
-
-            {/* Blog */}
             {config.sections.find(s => s.type === 'blog') && (
               <div className="border border-red-700 bg-red-900/20 rounded-lg p-4 space-y-2">
                 <h3 className="text-md font-semibold text-red-400 uppercase">5. Blog</h3>
@@ -403,8 +347,6 @@ export default function Home() {
                 ))}
               </div>
             )}
-
-            {/* Contact */}
             <div className="border border-cyan-700 bg-cyan-900/20 rounded-lg p-4 space-y-2">
               <h3 className="text-md font-semibold text-cyan-400 uppercase">6. Contact & Footer</h3>
               <div className="space-y-1">
@@ -420,8 +362,6 @@ export default function Home() {
                 <input type="text" value={config.meta.address || ""} onChange={(e) => updateAddress(e.target.value)} placeholder="Abidjan, Cocody" className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-sm" />
               </div>
             </div>
-
-            {/* Déploiement */}
             <div className="border border-gray-500 bg-gray-800/50 rounded-lg p-4 space-y-3">
               <h3 className="text-md font-semibold text-white uppercase flex items-center gap-2"><span>☁️</span> Mise en ligne</h3>
               {!isPro ? (
@@ -455,7 +395,6 @@ export default function Home() {
               )}
               {deployUrl && (<div className="bg-green-900/30 p-2 rounded border border-green-500 text-green-300 text-center mt-2"><p className="text-xs font-bold">🎉 Site en ligne :</p><a href={deployUrl} target="_blank" className="underline text-xs break-all">{deployUrl}</a></div>)}
             </div>
-
             <div className="pt-6 border-t border-gray-700 space-y-3">
               <p className="text-xs text-gray-500 text-center">Téléchargement manuel</p>
               <div className="grid grid-cols-2 gap-2">
