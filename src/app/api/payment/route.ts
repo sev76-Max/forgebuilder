@@ -26,7 +26,7 @@ export async function POST(req: Request) {
       ref_command: `REF-${Date.now()}`,
       currency: "XOF",
       lang: "fr",
-      env: "test", // Mettre "prod" en production
+      env: "prod", // Mettre "prod" en production
       // MODIFICATION : On ajoute projectId à l'URL pour le récupérer au retour
       success_url: `https://forgebuilder.vercel.app/?payment=success&projectId=${projectId}`,
       cancel_url: "https://forgebuilder.vercel.app/?payment=cancel",
