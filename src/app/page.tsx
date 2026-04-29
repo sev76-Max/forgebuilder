@@ -41,18 +41,16 @@ export default function Home() {
   const [isPreview, setIsPreview] = useState(false);
 
   const launchPaymentProcess = async (userId: string) => {
-    // Sécurité anti-boucle
     const intent = localStorage.getItem('forge_intent');
     if (intent !== 'pay') return;
     
-    // On efface l'intention immédiatement
     localStorage.removeItem('forge_intent');
     
     setPaymentLoading(true);
     try {
       const savedConfigStr = localStorage.getItem('forge_pending_config');
       if (!savedConfigStr) {
-        alert("Erreur : Le projet est introuvable.");
+        alert("Erreur : Le projet est introuvable. Veuillez rafraîchir la page et réessayer.");
         setPaymentLoading(false);
         return;
       }
@@ -70,7 +68,12 @@ export default function Home() {
         .select('id')
         .single();
 
-      if (projectError) throw projectError;
+      if (projectError) {
+        // MODIFICATION: On affiche l'erreur précise de Supabase
+        console.error("Erreur Supabase détails:", projectError);
+        throw new Error(`Erreur DB: ${projectError.message}`);
+      }
+      
       if (!projectData) throw new Error("Erreur création projet");
 
       const projectId = projectData.id;
@@ -90,12 +93,12 @@ export default function Home() {
       if (data.success && data.paymentUrl) {
         window.location.href = data.paymentUrl; 
       } else {
-        alert(data.message || "Impossible de lancer le paiement.");
-        setPaymentLoading(false);
+        throw new Error(data.message || "L'API de paiement a refusé la demande.");
       }
-    } catch (e) {
-      console.error(e);
-      alert("Erreur lors de l'initialisation du paiement.");
+    } catch (e: any) {
+      console.error("Erreur complète:", e);
+      // MODIFICATION: On affiche le message d'erreur réel
+      alert(`Erreur : ${e.message}`);
       setPaymentLoading(false);
     }
   };
@@ -194,15 +197,12 @@ export default function Home() {
   const handleVercelDeploy = async () => { setDeploying('vercel'); setDeployUrl(""); try { const files = generateSiteFiles(config); const safeName = (config.meta?.siteName || "Site").replace(/\s+/g, '-'); const res = await fetch('/api/deploy', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ provider: 'vercel', files, siteName: safeName }) }); const data = await res.json(); if (!res.ok) throw new Error(data.error || "Erreur serveur"); setDeployUrl(data.url); alert(`▲ Site publié : ${data.url}`); } catch (e: any) { alert(`Erreur : ${e.message}`); } finally { setDeploying(null); } };
   const handleNetlifyDeploy = async () => { setDeploying('netlify'); setDeployUrl(""); try { const files = generateSiteFiles(config); const safeName = (config.meta?.siteName || "Site").replace(/\s+/g, '-'); const res = await fetch('/api/deploy', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ provider: 'netlify', files, siteName: safeName }) }); const data = await res.json(); if (!res.ok) throw new Error(data.error || "Erreur serveur"); setDeployUrl(data.url); alert(`🚀 Site publié : ${data.url}`); } catch (e: any) { alert(`Erreur : ${e.message}`); } finally { setDeploying(null); } };
 
-  // CORRECTION ICI : Ajout du flag intent même si l'utilisateur est déjà connecté
   const handlePayment = async () => { 
     if (!user) {
       handleLogin(); 
       return;
     }
-    // On sauvegarde le projet
     localStorage.setItem('forge_pending_config', JSON.stringify(config));
-    // ON ACTIVE L'INTENTION (C'était le bug)
     localStorage.setItem('forge_intent', 'pay');
     
     launchPaymentProcess(user.id);
