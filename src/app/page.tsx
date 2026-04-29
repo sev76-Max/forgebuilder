@@ -40,51 +40,30 @@ export default function Home() {
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [isPreview, setIsPreview] = useState(false);
 
-  const launchPaymentProcess = async (userId: string) => {
+    const launchPaymentProcess = async (userId: string) => {
     const intent = localStorage.getItem('forge_intent');
     if (intent !== 'pay') return;
-    
     localStorage.removeItem('forge_intent');
     
     setPaymentLoading(true);
     try {
       const savedConfigStr = localStorage.getItem('forge_pending_config');
       if (!savedConfigStr) {
-        alert("Erreur : Le projet est introuvable. Veuillez rafraîchir la page et réessayer.");
+        alert("Erreur : Le projet est introuvable.");
         setPaymentLoading(false);
         return;
       }
       const savedConfig = JSON.parse(savedConfigStr);
       localStorage.removeItem('forge_pending_config');
 
-      const { data: projectData, error: projectError } = await supabase
-        .from('projects')
-        .insert({
-          user_id: userId,
-          name: savedConfig.meta?.siteName || "Mon Projet",
-          content: savedConfig,
-          is_paid: false 
-        })
-        .select('id')
-        .single();
-
-      if (projectError) {
-        // MODIFICATION: On affiche l'erreur précise de Supabase
-        console.error("Erreur Supabase détails:", projectError);
-        throw new Error(`Erreur DB: ${projectError.message}`);
-      }
-      
-      if (!projectData) throw new Error("Erreur création projet");
-
-      const projectId = projectData.id;
-
+      // APPEL API BACKEND MODIFIÉ
       const res = await fetch('/api/payment', { 
         method: 'POST', 
         headers: { 'Content-Type': 'application/json' }, 
         body: JSON.stringify({ 
           amount: 10000, 
           userId: userId, 
-          projectId: projectId 
+          config: savedConfig // On envoie la config au backend
         }) 
       }); 
       
@@ -93,12 +72,12 @@ export default function Home() {
       if (data.success && data.paymentUrl) {
         window.location.href = data.paymentUrl; 
       } else {
-        throw new Error(data.message || "L'API de paiement a refusé la demande.");
+        alert(`Erreur : ${data.message}`);
+        setPaymentLoading(false);
       }
     } catch (e: any) {
-      console.error("Erreur complète:", e);
-      // MODIFICATION: On affiche le message d'erreur réel
-      alert(`Erreur : ${e.message}`);
+      console.error(e);
+      alert("Erreur de connexion au serveur.");
       setPaymentLoading(false);
     }
   };
