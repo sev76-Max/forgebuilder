@@ -6,6 +6,7 @@ export interface SiteConfig {
     contactEmail?: string;
     phone?: string;      // Ajouté
     address?: string;    // Ajouté
+    phoneType?: string;  // <--- CORRECTION ICI : Ajout du type de contact (whatsapp ou tel)
     theme: {
       primaryColor: string;
       textColor?: string;
