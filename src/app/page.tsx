@@ -38,35 +38,29 @@ export default function Home() {
   const [isPro, setIsPro] = useState(false);
   const [paymentLoading, setPaymentLoading] = useState(false);
   
-  // NOUVEAU : État pour gérer la vérification de connexion
+  // États pour l'authentification
   const [user, setUser] = useState<any>(null);
   const [checkingAuth, setCheckingAuth] = useState(true); 
 
   useEffect(() => {
-    // Fonction pour récupérer l'utilisateur
     const getUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       setUser(session?.user ?? null);
-      setCheckingAuth(false); // On a fini de vérifier
+      setCheckingAuth(false);
     };
     
-    // On écoute les changements d'état (connexion/deconnexion)
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null);
-      setCheckingAuth(false); // On a fini de vérifier
-      
-      // Si on reçoit un événement de connexion, on nettoie l'URL
+      setCheckingAuth(false);
       if (event === 'SIGNED_IN') {
          window.history.replaceState({}, document.title, window.location.pathname);
       }
     });
 
-    // Vérification du retour de paiement
     const checkPaymentStatus = async () => {
       const params = new URLSearchParams(window.location.search);
       const paymentStatus = params.get('payment');
       const projectId = params.get('projectId');
-
       if (paymentStatus === 'success' && projectId) {
         alert("Paiement réussi ! Votre projet est en cours de débloquage...");
         window.history.replaceState({}, document.title, window.location.pathname);
@@ -78,7 +72,6 @@ export default function Home() {
     
     getUser();
     checkPaymentStatus();
-
     return () => { authListener.subscription.unsubscribe(); };
   }, []);
 
@@ -261,9 +254,8 @@ export default function Home() {
                 <p className="text-gray-400 mt-2">Propulsez votre idée instantanément.</p>
             </div>
             <div>
-                {/* MODIFICATION ICI : Gestion de l'état de chargement de l'authentification */}
                 {checkingAuth ? (
-                   <span className="text-xs text-gray-400 px-3 py-1">Vérification...</span>
+                   <span className="text-xs text-gray-400 px-3 py-1 animate-pulse">Vérification...</span>
                 ) : user ? (
                     <button onClick={handleLogout} className="text-xs bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded text-gray-300">
                         Déconnexion
@@ -276,10 +268,6 @@ export default function Home() {
             </div>
         </div>
         
-        {/* Le reste du fichier reste identique... */}
-        {/* Pour économiser de l'espace, je ne remets pas tout le JSX identique (thèmes, hero, etc.), assure-toi de garder le reste de ton fichier précédent à partir d'ici. */}
-        {/* Si tu veux le fichier complet, dis-le-moi, mais seul le bloc du haut change vraiment. */}
-        
         <div className="mb-8 border border-gray-700 bg-gray-800/50 rounded-lg p-4 space-y-3">
           <h3 className="text-md font-semibold text-gray-300 uppercase">💾 Projet</h3>
           <div className="grid grid-cols-3 gap-2">
@@ -289,25 +277,161 @@ export default function Home() {
           </div>
         </div>
         
-        {/* ... Le reste de ton code (Formulaire, Config, Deployment) reste inchangé ... */}
-        {/* J'ai coupé ici pour la brièveté, mais tu dois garder tout le reste du JSX intact. */}
-        
-        {/* SECTION DÉPLOIEMENT (Assure-toi qu'elle est identique à la version précédente) */}
-         <div className="border-t border-gray-700 pt-6 space-y-6 flex-1">
-            {/* ... Contenu des onglets et configuration ... */}
-            
-             {/* Pour te faciliter la tâche, je te remets juste la section déploiement critique qui change un peu : */}
-            
+        <form onSubmit={handleSubmit} className="space-y-6 z-10 mb-10">
+          <div><label className="block text-sm font-medium text-gray-300 mb-2">Votre activité</label><textarea rows={3} className="w-full bg-gray-800 border border-gray-600 rounded-lg p-4 focus:ring-2 focus:ring-orange-500 focus:outline-none text-white" value={prompt} onChange={(e) => setPrompt(e.target.value)} /></div>
+          <button type="submit" disabled={isLoading} className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-4 rounded-lg">{isLoading ? "Génération..." : "Générer mon site"}</button>
+        </form>
+
+        {config.meta.siteName !== "ForgeBuilder" && (
+          <div className="border-t border-gray-700 pt-6 space-y-6 flex-1">
+            <h2 className="text-xl font-bold text-gray-200">🎨 Palette & Contenu</h2>
+
+            {/* Thèmes */}
+            <div className="border border-teal-700 bg-teal-900/20 rounded-lg p-4">
+              <h3 className="text-md font-semibold text-teal-300 uppercase mb-3">✨ Thèmes</h3>
+              <div className="grid grid-cols-2 gap-2">{themes.map((t, idx) => (<button key={idx} onClick={() => applyTheme(t)} className="flex items-center justify-center gap-2 p-2 rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-600 text-xs font-medium"><span>{t.icon}</span> {t.name}</button>))}</div>
+            </div>
+
+            {/* Templates */}
+            <div className="border border-pink-700 bg-pink-900/20 rounded-lg p-4">
+              <h3 className="text-md font-semibold text-pink-300 uppercase mb-3">📦 Templates Rapides</h3>
+              <div className="grid grid-cols-2 gap-2 max-h-60 overflow-y-auto pr-2">
+                {TEMPLATES.map((t, idx) => (<button key={idx} onClick={() => setConfig(t.config)} className="flex flex-col items-center justify-center p-2 rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-600 text-xs font-medium transition-all hover:scale-105 group"><span className="text-2xl mb-1 group-hover:scale-110 transition-transform">{t.icon}</span><span className="text-gray-200 truncate w-full text-center">{t.name}</span></button>))}
+              </div>
+            </div>
+
+            {/* Hero */}
+            <div className="border border-orange-700 bg-orange-900/20 rounded-lg p-4 space-y-3">
+              <h3 onClick={() => scrollToSection('top')} className="text-md font-semibold text-orange-400 uppercase cursor-pointer hover:text-orange-300 flex justify-between items-center">1. Hero <span className="text-xs opacity-50">↓ Aller</span></h3>
+              <input type="text" value={config.meta.siteName || ""} onChange={(e) => updateSiteName(e.target.value)} className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm" />
+              <div className="space-y-1">
+                <label className="text-xs text-gray-400">Logo (Image)</label>
+                <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, 'logo')} className="w-full text-xs text-gray-400 file:mr-4 file:py-1 file:px-2 file:rounded-full file:border-0 file:text-xs file:bg-orange-50 file:text-orange-700 cursor-pointer" />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div><label className="text-xs text-gray-400">Logo Texte</label><input type="text" maxLength={20} value={config.meta.theme.logoLetter || ""} onChange={(e) => updateTheme('logoLetter', e.target.value)} className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm mt-1 text-center font-bold" /></div>
+                <div><label className="text-xs text-gray-400">Style Logo</label><select value={config.meta.theme.logoStyle || "minimal"} onChange={(e) => updateTheme('logoStyle', e.target.value)} className="w-full h-9 rounded bg-gray-700 border border-gray-600 px-2 text-xs mt-1"><option value="minimal">Simple</option><option value="circle">Cercle</option><option value="square">Carré</option><option value="gradient">Dégradé</option><option value="drawn">Dessiné</option><option value="neon">Néon</option><option value="stamp">Cachet</option><option value="embossed">Embouti</option></select></div>
+              </div>
+              <div className="flex gap-2 items-center">
+                <label className="text-xs text-gray-400 w-20">Couleur Logo</label>
+                <input type="color" value={config.meta.theme.logoColor || config.meta.theme.brandColor || "#F97316"} onChange={(e) => updateTheme('logoColor', e.target.value)} className="w-8 h-6 rounded cursor-pointer bg-transparent border p-0.5" />
+                <input type="text" value={config.meta.theme.logoColor || config.meta.theme.brandColor || "#F97316"} onChange={(e) => updateTheme('logoColor', e.target.value)} className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs uppercase" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-gray-400">Titre Principal</label>
+                <div className="flex gap-2">
+                  <input type="text" value={config.sections.find(s => s.type === 'hero')?.data?.headline || ""} onChange={(e) => setConfig(p => ({ ...p, sections: p.sections.map(s => s.type === 'hero' ? { ...s, data: { ...s.data, headline: e.target.value } } : s) }))} className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm" />
+                  <button onClick={() => refineText('hero-h', config.sections.find(s => s.type === 'hero')?.data?.headline || "", (val) => setConfig(p => ({ ...p, sections: p.sections.map(s => s.type === 'hero' ? { ...s, data: { ...s.data, headline: val } } : s) })))} disabled={refiningField === 'hero-h'} className="p-2 text-orange-400 hover:text-orange-300 disabled:opacity-50 bg-gray-700 rounded border border-gray-600">{refiningField === 'hero-h' ? "⏳" : "✨"}</button>
+                </div>
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-gray-400">Description</label>
+                <div className="flex gap-2">
+                  <input type="text" value={config.sections.find(s => s.type === 'hero')?.data?.subheadline || ""} onChange={(e) => setConfig(p => ({ ...p, sections: p.sections.map(s => s.type === 'hero' ? { ...s, data: { ...s.data, subheadline: e.target.value } } : s) }))} className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm" />
+                  <button onClick={() => refineText('hero-d', config.sections.find(s => s.type === 'hero')?.data?.subheadline || "", (val) => setConfig(p => ({ ...p, sections: p.sections.map(s => s.type === 'hero' ? { ...s, data: { ...s.data, subheadline: val } } : s) })))} disabled={refiningField === 'hero-d'} className="p-2 text-orange-400 hover:text-orange-300 disabled:opacity-50 bg-gray-700 rounded border border-gray-600">{refiningField === 'hero-d' ? "⏳" : "✨"}</button>
+                </div>
+              </div>
+              <div className="flex gap-2 items-center"><label className="text-xs text-gray-400">Titre</label><input type="color" value={config.meta.theme.textColor || '#FFFFFF'} onChange={(e) => updateTheme('textColor', e.target.value)} className="w-8 h-6 rounded cursor-pointer bg-transparent border p-0.5" /><input type="range" min="30" max="80" value={config.meta.theme.fontSize || 48} onChange={(e) => updateTheme('fontSize', e.target.value)} className="flex-1 h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-orange-500" /></div>
+              <div className="flex gap-2 items-center"><label className="text-xs text-gray-400">Texte</label><input type="color" value={config.meta.theme.secondaryTextColor || '#CCCCCC'} onChange={(e) => updateTheme('secondaryTextColor', e.target.value)} className="w-8 h-6 rounded cursor-pointer bg-transparent border p-0.5" /></div>
+              <div className="flex gap-2 items-center"><label className="text-xs text-gray-400">Bouton</label><input type="color" value={config.meta.theme.primaryColor} onChange={(e) => updateTheme('primaryColor', e.target.value)} className="w-8 h-6 rounded cursor-pointer bg-transparent border p-0.5" /></div>
+              <select value={getActionType(config.sections.find(s => s.type === 'hero')?.data?.ctaLink)} onChange={(e) => handleActionTypeChange(e.target.value)} className="w-full h-8 rounded bg-gray-700 border border-gray-600 px-2 text-xs mt-1"><option value="tel">📞 Appel</option><option value="whatsapp">💬 WhatsApp</option><option value="mailto">✉️ Email</option><option value="anchor">⬇️ Formulaire</option></select>
+              {getActionType(config.sections.find(s => s.type === 'hero')?.data?.ctaLink) !== 'anchor' && (<input type="text" value={getActionValue()} onChange={(e) => handleActionValueChange(e.target.value)} placeholder="Valeur..." className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-xs mt-1" />)}
+            </div>
+
+            {/* Styles Globaux */}
+            <div className="border border-purple-700 bg-purple-900/20 rounded-lg p-4 space-y-2">
+              <h3 className="text-md font-semibold text-purple-400 uppercase">2. Styles Globaux</h3>
+              <div className="flex gap-2 items-center">
+                <label className="text-xs text-gray-400 w-20">Titres</label>
+                <input type="color" value={config.meta.theme.featureTitleColor || '#111111'} onChange={(e) => updateTheme('featureTitleColor', e.target.value)} className="w-8 h-6 rounded cursor-pointer bg-transparent border p-0.5" />
+                <input type="text" value={config.meta.theme.featureTitleColor || '#111111'} onChange={(e) => updateTheme('featureTitleColor', e.target.value)} className="flex-1 bg-gray-700 rounded px-2 py-1 text-xs" />
+              </div>
+            </div>
+
+            {/* Services */}
+            <div className="border border-green-700 bg-green-900/20 rounded-lg p-4 space-y-2">
+              <h3 onClick={() => scrollToSection('services')} className="text-md font-semibold text-green-400 uppercase cursor-pointer hover:text-green-300 flex justify-between items-center">3. Services <span className="text-xs opacity-50">↓ Aller</span></h3>
+              {config.sections.find(s => s.type === 'features')?.data?.items?.map((item: any, idx: number) => (
+                <div key={idx} className="border border-gray-700 p-2 rounded space-y-1 bg-gray-800/50">
+                  <input type="text" value={item.title || ""} onChange={(e) => updateListItem('features', idx, 'title', e.target.value)} className="w-full bg-gray-700 rounded px-2 py-1 text-xs" />
+                  <textarea value={item.description || ""} onChange={(e) => updateListItem('features', idx, 'description', e.target.value)} rows={1} className="w-full bg-gray-700 rounded px-2 py-1 text-xs" />
+                </div>
+              ))}
+            </div>
+
+            {/* Produits */}
+            {config.sections.find(s => s.type === 'products') && (
+              <div className="border border-amber-700 bg-amber-900/20 rounded-lg p-4 space-y-2">
+                <h3 className="text-md font-semibold text-amber-400 uppercase">🛍️ Produits</h3>
+                {config.sections.find(s => s.type === 'products')?.data?.items?.map((item: any, idx: number) => (
+                  <div key={idx} className="border border-gray-700 p-2 rounded space-y-1 bg-gray-800/50 relative">
+                    <button onClick={() => removeProduct(idx)} className="absolute top-1 right-1 text-red-400 hover:text-red-300 text-xs p-1 hover:bg-red-900/50 rounded">×</button>
+                    <input type="text" value={item.title || ""} onChange={(e) => updateListItem('products', idx, 'title', e.target.value)} placeholder="Nom du produit" className="w-full bg-gray-700 rounded px-2 py-1 text-xs" />
+                    <input type="text" value={item.price || ""} onChange={(e) => updateListItem('products', idx, 'price', e.target.value)} placeholder="Prix (ex: 15 000 FCFA)" className="w-full bg-gray-700 rounded px-2 py-1 text-xs" />
+                    <textarea value={item.description || ""} onChange={(e) => updateListItem('products', idx, 'description', e.target.value)} placeholder="Description" rows={2} className="w-full bg-gray-700 rounded px-2 py-1 text-xs" />
+                    <div className="space-y-1">
+                        <label className="text-xs text-gray-400">Image du produit</label>
+                        <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, 'products', idx)} className="w-full text-xs text-gray-400 file:mr-4 file:py-1 file:px-2 file:rounded-full file:border-0 file:text-xs file:bg-amber-50 file:text-amber-700 cursor-pointer" />
+                    </div>
+                  </div>
+                ))}
+                <button onClick={addProduct} className="w-full mt-2 p-2 bg-amber-600 hover:bg-amber-700 rounded text-xs font-bold transition-colors">+ Ajouter un produit</button>
+              </div>
+            )}
+
+            {/* Témoignages */}
+            {config.sections.find(s => s.type === 'testimonials') && (
+              <div className="border border-yellow-700 bg-yellow-900/20 rounded-lg p-4 space-y-2">
+                <h3 className="text-md font-semibold text-yellow-400 uppercase">4. Témoignages</h3>
+                {config.sections.find(s => s.type === 'testimonials')?.data?.items?.map((item: any, idx: number) => (
+                  <div key={idx} className="border border-gray-700 p-2 rounded space-y-1 bg-gray-800/50">
+                    <input type="text" value={item.author || ""} onChange={(e) => updateListItem('testimonials', idx, 'author', e.target.value)} placeholder="Auteur" className="w-full bg-gray-700 rounded px-2 py-1 text-xs" />
+                    <textarea value={item.quote || ""} onChange={(e) => updateListItem('testimonials', idx, 'quote', e.target.value)} placeholder="Citation" rows={2} className="w-full bg-gray-700 rounded px-2 py-1 text-xs" />
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Blog */}
+            {config.sections.find(s => s.type === 'blog') && (
+              <div className="border border-red-700 bg-red-900/20 rounded-lg p-4 space-y-2">
+                <h3 className="text-md font-semibold text-red-400 uppercase">5. Blog</h3>
+                {config.sections.find(s => s.type === 'blog')?.data?.items?.map((item: any, idx: number) => (
+                  <div key={idx} className="border border-gray-700 p-2 rounded space-y-1 bg-gray-800/50">
+                    <input type="text" value={item.title || ""} onChange={(e) => updateListItem('blog', idx, 'title', e.target.value)} placeholder="Titre" className="w-full bg-gray-700 rounded px-2 py-1 text-xs" />
+                    <textarea value={item.excerpt || ""} onChange={(e) => updateListItem('blog', idx, 'excerpt', e.target.value)} placeholder="Extrait" rows={2} className="w-full bg-gray-700 rounded px-2 py-1 text-xs" />
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Contact */}
+            <div className="border border-cyan-700 bg-cyan-900/20 rounded-lg p-4 space-y-2">
+              <h3 className="text-md font-semibold text-cyan-400 uppercase">6. Contact & Footer</h3>
+              <div className="space-y-1">
+                <label className="text-xs text-gray-400">Email de réception</label>
+                <input type="email" value={config.meta.contactEmail || ""} onChange={(e) => updateContactEmail(e.target.value)} placeholder="contact@email.com" className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-sm" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-gray-400">Téléphone</label>
+                <input type="text" value={config.meta.phone || ""} onChange={(e) => updatePhone(e.target.value)} placeholder="+225 07 00 00 00 00" className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-sm" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-gray-400">Adresse</label>
+                <input type="text" value={config.meta.address || ""} onChange={(e) => updateAddress(e.target.value)} placeholder="Abidjan, Cocody" className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-sm" />
+              </div>
+            </div>
+
+            {/* Déploiement */}
             <div className="border border-gray-500 bg-gray-800/50 rounded-lg p-4 space-y-3">
               <h3 className="text-md font-semibold text-white uppercase flex items-center gap-2"><span>☁️</span> Mise en ligne</h3>
               {!isPro ? (
                 <div className="space-y-2">
                   <div className="bg-gray-700/50 p-3 rounded border border-gray-600 text-center">
                     <p className="text-sm font-bold text-white">Verrouillé</p>
-                    {/* Modification ici aussi pour gérer checkingAuth */}
                     {checkingAuth ? (
-                       <button disabled className="w-full mt-2 bg-gray-500 text-white font-bold py-3 px-4 rounded-lg text-sm">
-                         Vérification de la session...
+                       <button disabled className="w-full mt-2 bg-gray-500 text-white font-bold py-3 px-4 rounded-lg text-sm cursor-wait">
+                         Vérification...
                        </button>
                     ) : !user ? (
                        <button onClick={handleLogin} className="w-full mt-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold py-3 px-4 rounded-lg text-sm shadow-lg hover:opacity-90 transition">
@@ -332,7 +456,16 @@ export default function Home() {
               )}
               {deployUrl && (<div className="bg-green-900/30 p-2 rounded border border-green-500 text-green-300 text-center mt-2"><p className="text-xs font-bold">🎉 Site en ligne :</p><a href={deployUrl} target="_blank" className="underline text-xs break-all">{deployUrl}</a></div>)}
             </div>
-         </div>
+
+            <div className="pt-6 border-t border-gray-700 space-y-3">
+              <p className="text-xs text-gray-500 text-center">Téléchargement manuel</p>
+              <div className="grid grid-cols-2 gap-2">
+                <button onClick={handleStaticExport} className="p-2 rounded bg-gray-600 hover:bg-gray-500 text-white text-xs font-medium">📱 ZIP</button>
+                <button onClick={handleDynamicExport} className="p-2 rounded bg-gray-600 hover:bg-gray-500 text-white text-xs font-medium">📦 Next.js</button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
       <div className="w-2/3 overflow-y-auto bg-white"><DynamicRenderer sections={config.sections} meta={config.meta} /></div>
     </main>
