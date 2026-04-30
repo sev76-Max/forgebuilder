@@ -56,19 +56,16 @@ function getStyles() {
   return `<style>html{scroll-behavior:smooth}body{font-family:'Inter',sans-serif;margin:0;color:#1a202c;-webkit-font-smoothing:antialiased;line-height:1.6;background-color:#fff}*,::before,::after{box-sizing:border-box}a{text-decoration:none;color:inherit}img{max-width:100%;height:auto;display:block}h1,h2,h3{line-height:1.2;font-weight:800;letter-spacing:-0.02em}.container{max-width:1200px;margin:0 auto;padding:0 1.5rem}.section{padding:6rem 0}.btn-primary{display:inline-flex;align-items:center;justify-content:center;padding:1rem 2.5rem;border-radius:9999px;color:white;font-weight:700;font-size:1.1rem;transition:all .3s ease;box-shadow:0 4px 14px 0 rgba(0,0,0,.25)}.btn-primary:hover{transform:translateY(-2px);box-shadow:0 6px 20px 0 rgba(0,0,0,.3)}.card{background:white;border-radius:1rem;overflow:hidden;transition:all .3s ease;border:1px solid rgba(0,0,0,.05);box-shadow:0 4px 6px -1px rgba(0,0,0,.05)}.card:hover{transform:translateY(-5px);box-shadow:0 20px 25px -5px rgba(0,0,0,.1)}.nav-toggle{display:none}.hamburger{display:none;flex-direction:column;justify-content:space-around;width:2.5rem;height:2.5rem;cursor:pointer;z-index:100}.hamburger span{width:2.5rem;height:.2rem;background:#333;border-radius:10px;transition:all .3s linear;position:relative;transform-origin:1px}@media(max-width:768px){.hamburger{display:flex}.nav-links{position:absolute;top:0;right:0;height:100vh;width:300px;background:white;flex-direction:column;align-items:center;justify-content:flex-start;padding-top:100px;gap:2rem;box-shadow:-5px 0 10px rgba(0,0,0,.1);transform:translateX(100%);transition:transform .3s ease-in-out;z-index:90;display:flex}.nav-toggle:checked~.nav-links{transform:translateX(0)}.nav-toggle:checked~.hamburger span:first-child{transform:rotate(45deg)}.nav-toggle:checked~.hamburger span:nth-child(2){opacity:0}.nav-toggle:checked~.hamburger span:last-child{transform:rotate(-45deg)}.nav-links a{font-size:1.2rem;color:#111!important}.section{padding:4rem 0}}</style>`;
 }
 
-// NOUVEAU : Helper pour extraire le numéro proprement depuis un lien wa.me
 function extractPhoneFromLink(link: string): string {
   if (!link) return "";
   const match = link.match(/wa\.me\/(\d+)/);
   return match ? match[1] : "";
 }
 
-// NOUVEAU : Helper pour vérifier si un lien WhatsApp est valide (a un numéro)
 function isValidWhatsAppLink(link: string): boolean {
   if (!link || !link.startsWith('https://wa.me/')) return false;
-  // Vérifie si après wa.me/ il y a des chiffres (le numéro)
   const phone = extractPhoneFromLink(link);
-  return phone.length > 5; // Un numéro valide a généralement plus de 5 chiffres
+  return phone.length > 5;
 }
 
 function getNavbarHtml(config: SiteConfig, activePage: string = 'home') {
@@ -81,7 +78,6 @@ function getNavbarHtml(config: SiteConfig, activePage: string = 'home') {
 
   const rawHeroLink = config.sections.find(s => s.type === 'hero')?.data?.ctaLink || '#';
   
-  // LOGIQUE CORRIGÉE
   let navContactHref = 'contact.html';
   let navContactTarget = '_self';
 
@@ -89,28 +85,70 @@ function getNavbarHtml(config: SiteConfig, activePage: string = 'home') {
     navContactHref = rawHeroLink;
     navContactTarget = '_blank';
   } else if (isValidWhatsAppLink(rawHeroLink)) {
-    // Si c'est un lien WhatsApp valide, on l'utilise
     navContactHref = rawHeroLink; 
     navContactTarget = '_blank';
   } else {
-    // Sinon on va sur la page contact
     navContactHref = 'contact.html';
   }
 
   return `<nav style="position: fixed; top: 0; left: 0; right: 0; z-index: 50; background: rgba(255,255,255,0.98); backdrop-filter: blur(10px); box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05);"><div class="container" style="display: flex; justify-content: space-between; align-items: center; height: 80px; position: relative;">${logoHtml}<label for="nav-toggle" class="hamburger"><span></span><span></span><span></span></label><input type="checkbox" id="nav-toggle" class="nav-toggle"><div class="nav-links" style="display: flex; align-items: center; gap: 2rem;"><a href="index.html" style="${linkStyle} ${activePage === 'home' ? activeStyle : ''}">Accueil</a><a href="${servicesLink}" style="${linkStyle} ${activePage === 'services' ? activeStyle : ''}">Services</a><a href="about.html" style="${linkStyle} ${activePage === 'about' ? activeStyle : ''}">À Propos</a><a href="testimonials.html" style="${linkStyle} ${activePage === 'testimonials' ? activeStyle : ''}">Avis</a><a href="blog.html" style="${linkStyle} ${activePage === 'blog' ? activeStyle : ''}">Blog</a><a href="${navContactHref}" target="${navContactTarget}" class="btn-primary" style="padding: 0.6rem 1.2rem; font-size: 0.9rem; background-color: ${brandColor};">Contact</a></div></div></nav><div style="height: 80px;"></div>`;
 }
 
+// FOOTER MIS À JOUR AVEC RÉSEAUX SOCIAUX
 function getFooterHtml(meta: any) {
   const year = new Date().getFullYear();
   const p = meta.phone || "";
+  const pt = meta.phoneType || "tel"; // Type de contact
   const a = meta.address || "";
   const e = meta.contactEmail || "";
   const n = meta.siteName || "Site";
-  let c = "";
-  if(a) c += `<li style="margin-bottom:0.5rem;display:flex;align-items:start;gap:10px;"><span>📍</span><span>${a}</span></li>`;
-  if(p) c += `<li style="margin-bottom:0.5rem;"><span>📞</span> <a href="tel:${p}" style="color:#9ca3af">${p}</a></li>`;
-  if(e) c += `<li style="margin-bottom:0.5rem;"><span>✉️</span> <a href="mailto:${e}" style="color:#9ca3af">${e}</a></li>`;
-  return `<footer style="background:#111827;color:#9ca3af;padding:4rem 0 2rem;border-top:1px solid #374151"><div class="container" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:3rem"><div><h4 style="font-size:1.25rem;font-weight:bold;color:white;margin-bottom:1rem">${n}</h4><p style="font-size:0.9rem;line-height:1.6">Votre partenaire de confiance.</p></div><div><h4 style="font-size:1rem;font-weight:600;color:white;margin-bottom:1rem">Navigation</h4><ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:0.5rem"><li><a href="index.html" style="color:#9ca3af;font-size:0.9rem">Accueil</a></li><li><a href="about.html" style="color:#9ca3af;font-size:0.9rem">À Propos</a></li><li><a href="contact.html" style="color:#9ca3af;font-size:0.9rem">Contact</a></li></ul></div><div><h4 style="font-size:1rem;font-weight:600;color:white;margin-bottom:1rem">Contact</h4><ul style="list-style:none;padding:0;margin:0;font-size:0.9rem">${c}</ul></div></div><div style="border-top:1px solid #374151;padding-top:2rem;text-align:center;margin-top:2rem"><p style="font-size:0.875rem">© ${year} ${n}. Tous droits réservés.</p></div></footer>`;
+  
+  // Réseaux sociaux
+  const fb = meta.socialFacebook;
+  const ig = meta.socialInstagram;
+  const tw = meta.socialTwitter;
+  const li = meta.socialLinkedin;
+
+  let contactList = "";
+  if(a) contactList += `<li style="margin-bottom:0.5rem;display:flex;align-items:start;gap:10px;"><span>📍</span><span>${a}</span></li>`;
+  
+  // Gestion téléphone/whatsapp dans le footer
+  if(p) {
+    let phoneHref = `tel:${p}`;
+    let phoneLabel = p;
+    if (pt === 'whatsapp') {
+        const cleanPhone = p.replace(/\s+/g, '');
+        phoneHref = `https://wa.me/${cleanPhone}?text=Bonjour`;
+        contactList += `<li style="margin-bottom:0.5rem;"><span>💬</span> <a href="${phoneHref}" target="_blank" style="color:#9ca3af">WhatsApp</a></li>`;
+    } else {
+        contactList += `<li style="margin-bottom:0.5rem;"><span>📞</span> <a href="${phoneHref}" style="color:#9ca3af">${phoneLabel}</a></li>`;
+    }
+  }
+  
+  if(e) contactList += `<li style="margin-bottom:0.5rem;"><span>✉️</span> <a href="mailto:${e}" style="color:#9ca3af">${e}</a></li>`;
+
+  // SVG Icons pour les réseaux sociaux
+  const fbIcon = `<svg style="width:20px;height:20px;" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>`;
+  const igIcon = `<svg style="width:20px;height:20px;" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>`;
+  const twIcon = `<svg style="width:20px;height:20px;" fill="currentColor" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>`;
+  const liIcon = `<svg style="width:20px;height:20px;" fill="currentColor" viewBox="0 0 24 24"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>`;
+
+  let socialHtml = "";
+  if (fb || ig || tw || li) {
+    socialHtml = `
+      <div>
+        <h4 style="font-size:1rem;font-weight:600;color:white;margin-bottom:1rem">Suivez-nous</h4>
+        <div style="display:flex;gap:1rem;">
+          ${fb ? `<a href="${fb}" target="_blank" style="color:#9ca3af;transition:color 0.2s;">${fbIcon}</a>` : ''}
+          ${ig ? `<a href="${ig}" target="_blank" style="color:#9ca3af;transition:color 0.2s;">${igIcon}</a>` : ''}
+          ${tw ? `<a href="${tw}" target="_blank" style="color:#9ca3af;transition:color 0.2s;">${twIcon}</a>` : ''}
+          ${li ? `<a href="${li}" target="_blank" style="color:#9ca3af;transition:color 0.2s;">${liIcon}</a>` : ''}
+        </div>
+      </div>
+    `;
+  }
+
+  return `<footer style="background:#111827;color:#9ca3af;padding:4rem 0 2rem;border-top:1px solid #374151"><div class="container" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:3rem"><div><h4 style="font-size:1.25rem;font-weight:bold;color:white;margin-bottom:1rem">${n}</h4><p style="font-size:0.9rem;line-height:1.6">Votre partenaire de confiance.</p></div><div><h4 style="font-size:1rem;font-weight:600;color:white;margin-bottom:1rem">Navigation</h4><ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:0.5rem"><li><a href="index.html" style="color:#9ca3af;font-size:0.9rem">Accueil</a></li><li><a href="about.html" style="color:#9ca3af;font-size:0.9rem">À Propos</a></li><li><a href="contact.html" style="color:#9ca3af;font-size:0.9rem">Contact</a></li></ul></div><div><h4 style="font-size:1rem;font-weight:600;color:white;margin-bottom:1rem">Contact</h4><ul style="list-style:none;padding:0;margin:0;font-size:0.9rem">${contactList}</ul></div>${socialHtml}</div><div style="border-top:1px solid #374151;padding-top:2rem;text-align:center;margin-top:2rem"><p style="font-size:0.875rem">© ${year} ${n}. Tous droits réservés.</p></div></footer>`;
 }
 
 function getSeoHead(meta: any, titleSuffix: string = "", imageUrl: string = "") {
@@ -130,7 +168,6 @@ function generateHomePage(config: SiteConfig): string {
   const features = sections.find(s => s.type === 'features')?.data || { title: "Services", items: [] };
   const products = sections.find(s => s.type === 'products')?.data || null;
 
-  // Récupération du lien maitre (Hero)
   const masterLink = hero.ctaLink || '#';
   const isWhatsApp = isValidWhatsAppLink(masterLink);
 
@@ -152,13 +189,11 @@ function generateHomePage(config: SiteConfig): string {
           <h2 style="text-align: center; font-size: 2.5rem; font-weight: 800; margin-bottom: 4rem; color: ${fTitleColor};">${products.title || "Nos Produits"}</h2>
           <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 2rem;">
             ${products.items.map((item: any) => {
-              // LOGIQUE PRODUIT CORRIGÉE
               let btnLink = "contact.html";
               let btnTarget = "_self";
               
               if (isWhatsApp) {
-                // Si le lien maitre est WhatsApp valide, on l'utilise en ajoutant le nom du produit au message
-                const baseLink = masterLink.split('?')[0]; // On garde wa.me/numero
+                const baseLink = masterLink.split('?')[0];
                 const msg = encodeURIComponent(`Bonjour, je suis intéressé(e) par le produit : ${item.title}`);
                 btnLink = `${baseLink}?text=${msg}`;
                 btnTarget = "_blank";
@@ -184,7 +219,6 @@ function generateHomePage(config: SiteConfig): string {
     `;
   }
 
-  // HERO LINK CORRECTED
   let heroTarget = '_self';
   let finalHeroLink = 'contact.html';
   
