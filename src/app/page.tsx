@@ -152,9 +152,10 @@ export default function Home() {
   const updateContactEmail = (value: string) => setConfig(prev => ({ ...prev, meta: { ...prev.meta, contactEmail: value } }));
   const updatePhone = (value: string) => setConfig(prev => ({ ...prev, meta: { ...prev.meta, phone: value } }));
   const updateAddress = (value: string) => setConfig(prev => ({ ...prev, meta: { ...prev.meta, address: value } }));
-  
-  // Nouvelle fonction pour gérer le type de contact (WhatsApp ou Appel)
   const updatePhoneType = (type: string) => setConfig(prev => ({ ...prev, meta: { ...prev.meta, phoneType: type } }));
+  
+  // Fonction mise à jour pour les réseaux sociaux
+  const updateSocial = (key: string, value: string) => setConfig(prev => ({ ...prev, meta: { ...prev.meta, [key]: value } }));
 
   const updateHeroLink = (value: string) => setConfig(prev => ({ ...prev, sections: prev.sections.map(s => s.type === 'hero' ? { ...s, data: { ...s.data, ctaLink: value } } : s) }));
   const updateListItem = (type: string, idx: number, key: string, value: any) => setConfig(prev => ({ ...prev, sections: prev.sections.map(s => { if (s.type === type && s.data.items) { const newItems = s.data.items.map((it: any, i: number) => i === idx ? { ...it, [key]: value } : it); return { ...s, data: { ...s.data, items: newItems } }; } return s; }) }));
@@ -360,44 +361,50 @@ export default function Home() {
                 ))}
               </div>
             )}
-            
-            {/* SECTION 6: CONTACT & FOOTER - MODIFIEE */}
             <div className="border border-cyan-700 bg-cyan-900/20 rounded-lg p-4 space-y-2">
               <h3 className="text-md font-semibold text-cyan-400 uppercase">6. Contact & Footer</h3>
-              
-              {/* Email */}
               <div className="space-y-1">
                 <label className="text-xs text-gray-400">Email de réception</label>
                 <input type="email" value={config.meta.contactEmail || ""} onChange={(e) => updateContactEmail(e.target.value)} placeholder="contact@email.com" className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-sm" />
               </div>
-
-              {/* Téléphone */}
               <div className="space-y-1">
                 <label className="text-xs text-gray-400">Téléphone</label>
                 <input type="text" value={config.meta.phone || ""} onChange={(e) => updatePhone(e.target.value)} placeholder="+221 77 000 00 00" className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-sm" />
               </div>
-
-              {/* Choix du type de contact (NOUVEAU) */}
               <div className="space-y-1">
                 <label className="text-xs text-gray-400">Action du bouton Contact</label>
-                <select 
-                  value={config.meta.phoneType || "tel"} 
-                  onChange={(e) => updatePhoneType(e.target.value)} 
-                  className="w-full h-8 rounded bg-gray-700 border border-gray-600 px-2 text-xs"
-                >
+                <select value={config.meta.phoneType || "tel"} onChange={(e) => updatePhoneType(e.target.value)} className="w-full h-8 rounded bg-gray-700 border border-gray-600 px-2 text-xs">
                   <option value="tel">📞 Appel téléphonique</option>
                   <option value="whatsapp">💬 Ouvrir WhatsApp</option>
                 </select>
               </div>
-
-              {/* Adresse */}
               <div className="space-y-1">
                 <label className="text-xs text-gray-400">Adresse</label>
                 <input type="text" value={config.meta.address || ""} onChange={(e) => updateAddress(e.target.value)} placeholder="Dakar, Sénégal" className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-sm" />
               </div>
-            </div>
-            {/* FIN SECTION 6 */}
+              
+              {/* RESEAUX SOCIAUX - NOUVEAU */}
+              <div className="space-y-2 pt-2 border-t border-gray-700 mt-2">
+                <label className="text-xs text-gray-400 block">Réseaux Sociaux (URLs)</label>
+                <div className="flex gap-2 items-center">
+                  <span className="text-lg">📘</span>
+                  <input type="text" value={config.meta.socialFacebook || ""} onChange={(e) => updateSocial('socialFacebook', e.target.value)} placeholder="Lien Facebook" className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-sm" />
+                </div>
+                <div className="flex gap-2 items-center">
+                  <span className="text-lg">📸</span>
+                  <input type="text" value={config.meta.socialInstagram || ""} onChange={(e) => updateSocial('socialInstagram', e.target.value)} placeholder="Lien Instagram" className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-sm" />
+                </div>
+                <div className="flex gap-2 items-center">
+                  <span className="text-lg">🐦</span>
+                  <input type="text" value={config.meta.socialTwitter || ""} onChange={(e) => updateSocial('socialTwitter', e.target.value)} placeholder="Lien Twitter / X" className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-sm" />
+                </div>
+               <div className="flex gap-2 items-center">
+                  <span className="text-lg">💼</span>
+                  <input type="text" value={config.meta.socialLinkedin || ""} onChange={(e) => updateSocial('socialLinkedin', e.target.value)} placeholder="Lien LinkedIn" className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-sm" />
+                </div>
+              </div>
 
+            </div>
             <div className="border border-gray-500 bg-gray-800/50 rounded-lg p-4 space-y-3">
               <h3 className="text-md font-semibold text-white uppercase flex items-center gap-2"><span>☁️</span> Mise en ligne</h3>
               {!isPro ? (

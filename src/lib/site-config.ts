@@ -4,9 +4,15 @@ export interface SiteConfig {
     siteName: string;
     description: string;
     contactEmail?: string;
-    phone?: string;      // Ajouté
-    address?: string;    // Ajouté
-    phoneType?: string;  // <--- CORRECTION ICI : Ajout du type de contact (whatsapp ou tel)
+    phone?: string;
+    address?: string;
+    phoneType?: string; // 'tel' ou 'whatsapp'
+    // Réseaux sociaux
+    socialFacebook?: string;
+    socialInstagram?: string;
+    socialTwitter?: string;
+    socialLinkedin?: string;
+    
     theme: {
       primaryColor: string;
       textColor?: string;
@@ -34,19 +40,16 @@ export interface SiteConfig {
 }
 
 export interface Section {
-  // C'EST ICI QU'IL FAUT AJOUTER LES NOUVEAUX TYPES
   type: 'hero' | 'features' | 'testimonials' | 'video' | 'contact_form' | 'footer' | 'cta' | 'about' | 'newsletter' | 'blog';
   data: any;
 }
 
-// ... (gardez le currentSiteConfig par défaut existant)
-// CECI EST LE "MÉTAL BRUT" (La configuration de test)
 export const currentSiteConfig: SiteConfig = {
   meta: {
     siteName: "ForgeBuilder Demo",
     description: "Un site généré par ForgeBuilder",
     theme: {
-      primaryColor: "#F97316", // Orange intense pour la Forge
+      primaryColor: "#F97316",
       fontFamily: "Inter"
     }
   },
@@ -55,7 +58,7 @@ export const currentSiteConfig: SiteConfig = {
       type: 'hero',
       data: {
         headline: "Forgez votre présence digitale",
-        subheadline: "En quelques clics, transformez votre idée en un site web performant et prêt à convertir. Pas de code, juste du résultat.",
+        subheadline: "En quelques clics, transformez votre idée en un site web performant et prêt à convertir.",
         ctaText: "Commencer à forger",
         ctaLink: "#start",
         imageUrl: "https://images.unsplash.com/photo-1519389950473-47ba0277781c?ixlib=rb-4.0.3&auto=format&fit=crop&w=1470&q=80"
