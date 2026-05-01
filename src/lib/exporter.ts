@@ -76,7 +76,12 @@ function getNavbarHtml(config: SiteConfig, activePage: string = 'home') {
   const activeStyle = 'font-weight: 700; color: #111827;';
   const servicesLink = activePage === 'home' ? '#services' : 'index.html#services';
 
-  const rawHeroLink = config.sections.find(s => s.type === 'hero')?.data?.ctaLink || '#';
+  // CORRECTION: Nettoyage du lien pour la navbar aussi
+  let rawHeroLink = config.sections.find(s => s.type === 'hero')?.data?.ctaLink || '#';
+  if (rawHeroLink.startsWith('https://wa.me/')) {
+      const cleanDigits = rawHeroLink.replace(/\D/g, '');
+      rawHeroLink = `https://wa.me/${cleanDigits}`;
+  }
   
   let navContactHref = 'contact.html';
   let navContactTarget = '_self';
@@ -94,16 +99,14 @@ function getNavbarHtml(config: SiteConfig, activePage: string = 'home') {
   return `<nav style="position: fixed; top: 0; left: 0; right: 0; z-index: 50; background: rgba(255,255,255,0.98); backdrop-filter: blur(10px); box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05);"><div class="container" style="display: flex; justify-content: space-between; align-items: center; height: 80px; position: relative;">${logoHtml}<label for="nav-toggle" class="hamburger"><span></span><span></span><span></span></label><input type="checkbox" id="nav-toggle" class="nav-toggle"><div class="nav-links" style="display: flex; align-items: center; gap: 2rem;"><a href="index.html" style="${linkStyle} ${activePage === 'home' ? activeStyle : ''}">Accueil</a><a href="${servicesLink}" style="${linkStyle} ${activePage === 'services' ? activeStyle : ''}">Services</a><a href="about.html" style="${linkStyle} ${activePage === 'about' ? activeStyle : ''}">À Propos</a><a href="testimonials.html" style="${linkStyle} ${activePage === 'testimonials' ? activeStyle : ''}">Avis</a><a href="blog.html" style="${linkStyle} ${activePage === 'blog' ? activeStyle : ''}">Blog</a><a href="${navContactHref}" target="${navContactTarget}" class="btn-primary" style="padding: 0.6rem 1.2rem; font-size: 0.9rem; background-color: ${brandColor};">Contact</a></div></div></nav><div style="height: 80px;"></div>`;
 }
 
-// FOOTER MIS À JOUR AVEC RÉSEAUX SOCIAUX
 function getFooterHtml(meta: any) {
   const year = new Date().getFullYear();
   const p = meta.phone || "";
-  const pt = meta.phoneType || "tel"; // Type de contact
+  const pt = meta.phoneType || "tel";
   const a = meta.address || "";
   const e = meta.contactEmail || "";
   const n = meta.siteName || "Site";
   
-  // Réseaux sociaux
   const fb = meta.socialFacebook;
   const ig = meta.socialInstagram;
   const tw = meta.socialTwitter;
@@ -112,7 +115,6 @@ function getFooterHtml(meta: any) {
   let contactList = "";
   if(a) contactList += `<li style="margin-bottom:0.5rem;display:flex;align-items:start;gap:10px;"><span>📍</span><span>${a}</span></li>`;
   
-  // Gestion téléphone/whatsapp dans le footer
   if(p) {
     let phoneHref = `tel:${p}`;
     let phoneLabel = p;
@@ -127,7 +129,6 @@ function getFooterHtml(meta: any) {
   
   if(e) contactList += `<li style="margin-bottom:0.5rem;"><span>✉️</span> <a href="mailto:${e}" style="color:#9ca3af">${e}</a></li>`;
 
-  // SVG Icons pour les réseaux sociaux
   const fbIcon = `<svg style="width:20px;height:20px;" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>`;
   const igIcon = `<svg style="width:20px;height:20px;" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>`;
   const twIcon = `<svg style="width:20px;height:20px;" fill="currentColor" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>`;
@@ -168,7 +169,14 @@ function generateHomePage(config: SiteConfig): string {
   const features = sections.find(s => s.type === 'features')?.data || { title: "Services", items: [] };
   const products = sections.find(s => s.type === 'products')?.data || null;
 
-  const masterLink = hero.ctaLink || '#';
+  // CORRECTION ICI : Nettoyage du lien WhatsApp pour le bouton principal et les produits
+  let masterLink = hero.ctaLink || '#';
+  if (masterLink.startsWith('https://wa.me/')) {
+      // On ne garde que les chiffres
+      const cleanDigits = masterLink.replace(/\D/g, '');
+      masterLink = `https://wa.me/${cleanDigits}`;
+  }
+
   const isWhatsApp = isValidWhatsAppLink(masterLink);
 
   const servicesHtml = (features.items || []).map((item: any, index: number) => `
@@ -193,6 +201,7 @@ function generateHomePage(config: SiteConfig): string {
               let btnTarget = "_self";
               
               if (isWhatsApp) {
+                // Utilisation du lien nettoyé (masterLink)
                 const baseLink = masterLink.split('?')[0];
                 const msg = encodeURIComponent(`Bonjour, je suis intéressé(e) par le produit : ${item.title}`);
                 btnLink = `${baseLink}?text=${msg}`;
@@ -222,6 +231,7 @@ function generateHomePage(config: SiteConfig): string {
   let heroTarget = '_self';
   let finalHeroLink = 'contact.html';
   
+  // Utilisation du lien nettoyé (masterLink)
   if (masterLink.startsWith('tel:') || masterLink.startsWith('mailto:') || isWhatsApp) {
      finalHeroLink = masterLink;
      heroTarget = '_blank';
@@ -241,14 +251,19 @@ function generateServicePage(config: SiteConfig, item: any, index: number): stri
   const fTitleColor = theme?.featureTitleColor || "#111827";
   const fDescColor = theme?.featureDescColor || "#4b5563";
   
-  const masterLink = config.sections.find(s => s.type === 'hero')?.data?.ctaLink || '#';
-  const isWhatsApp = isValidWhatsAppLink(masterLink);
+  // CORRECTION ICI aussi pour les pages de service
+  let rawLink = config.sections.find(s => s.type === 'hero')?.data?.ctaLink || '#';
+  if (rawLink.startsWith('https://wa.me/')) {
+      const cleanDigits = rawLink.replace(/\D/g, '');
+      rawLink = `https://wa.me/${cleanDigits}`;
+  }
+  const isWhatsApp = isValidWhatsAppLink(rawLink);
   
   let btnLink = 'contact.html';
   let btnTarget = '_self';
   
-  if (isWhatsApp || masterLink.startsWith('tel:') || masterLink.startsWith('mailto:')) {
-     btnLink = masterLink;
+  if (isWhatsApp || rawLink.startsWith('tel:') || rawLink.startsWith('mailto:')) {
+     btnLink = rawLink;
      btnTarget = '_blank';
   }
 
