@@ -110,17 +110,19 @@ export function PaymentModal({ open, onClose, onSuccess, payment }: PaymentModal
     else setPollTimedOut(true);
   };
 
-  const inputCls = "w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none";
+  const inputCls =
+    "w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-2.5 text-sm text-gray-900 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 focus:outline-none";
 
   return (
-    <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
-  <div
-    className="bg-gray-900 text-white rounded-2xl w-full max-w-md p-6 relative border border-gray-700 shadow-2xl max-h-[90vh] overflow-y-auto"
-    style={{ backgroundColor: "#111827" }}
-  >
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+      {/* Panneau clair : contraste maximal pour la lisibilité */}
+      <div
+        className="bg-white text-gray-900 rounded-2xl w-full max-w-md p-6 relative border border-gray-200 shadow-2xl max-h-[90vh] overflow-y-auto"
+        style={{ backgroundColor: "#ffffff" }}
+      >
         <button
           onClick={onClose}
-          className="absolute top-3 right-4 text-gray-500 hover:text-white text-xl"
+          className="absolute top-3 right-4 text-gray-400 hover:text-gray-700 text-2xl leading-none"
           aria-label="Fermer"
         >
           ×
@@ -129,9 +131,11 @@ export function PaymentModal({ open, onClose, onSuccess, payment }: PaymentModal
         {/* ── Étape 1 : choix de l'opérateur ── */}
         {step === "operator" && (
           <>
-            <h2 className="text-xl font-bold mb-1">Débloquer l'accès Pro</h2>
-            <p className="text-sm text-gray-400 mb-4">
-              Paiement unique de <span className="text-orange-400 font-bold">{formatPrice(PRICE_XOF)}</span> — publication illimitée.
+            <h2 className="text-xl font-bold text-gray-900 mb-1">Débloquer l'accès Pro</h2>
+            <p className="text-sm text-gray-600 mb-4">
+              Paiement unique de{" "}
+              <span className="text-orange-600 font-bold">{formatPrice(PRICE_XOF)}</span> — publication
+              illimitée.
             </p>
             <div className="space-y-3">
               {PAYMENT_OPERATORS.map((op) => (
@@ -149,45 +153,64 @@ export function PaymentModal({ open, onClose, onSuccess, payment }: PaymentModal
                   disabled={!op.number}
                   className={`w-full flex items-center gap-3 p-4 rounded-xl border text-left transition ${
                     op.number
-                      ? "border-gray-600 bg-gray-800 hover:bg-gray-700 hover:border-orange-500"
-                      : "border-gray-800 bg-gray-800/40 opacity-40 cursor-not-allowed"
+                      ? "border-gray-200 bg-gray-50 hover:bg-white hover:border-orange-400 hover:shadow-md"
+                      : "border-gray-100 bg-gray-50 opacity-40 cursor-not-allowed"
                   }`}
                 >
                   <span className="text-3xl">{op.icon}</span>
                   <span className="flex-1">
-                    <span className="block font-bold">{op.label}</span>
-                    <span className="block text-xs text-gray-400">{op.hint}</span>
-                    {!op.number && <span className="block text-xs text-red-400 mt-1">⚠️ Non configuré</span>}
+                    <span className="block font-bold text-gray-900">{op.label}</span>
+                    <span className="block text-xs text-gray-500">{op.hint}</span>
+                    {!op.number && (
+                      <span className="block text-xs text-red-500 mt-1">⚠️ Non configuré</span>
+                    )}
                   </span>
-                  {op.number && <span className="text-gray-500">›</span>}
+                  {op.number && <span className="text-gray-400">›</span>}
                 </button>
               ))}
             </div>
-            {error && <p className="text-sm text-red-400 mt-3">{error}</p>}
+            {error && <p className="text-sm text-red-600 mt-3">{error}</p>}
           </>
         )}
 
         {/* ── Étape 2 : instructions de paiement ── */}
         {step === "instructions" && operator && (
           <>
-            <button onClick={() => setStep("operator")} className="text-xs text-gray-400 hover:text-white mb-3">← Changer de moyen</button>
-            <h2 className="text-xl font-bold mb-1">{operator.icon} {operator.label}</h2>
-            <p className="text-sm text-gray-400 mb-4">
-              Envoyez exactement <span className="text-orange-400 font-bold">{formatPrice(PRICE_XOF)}</span> au numéro :
+            <button
+              onClick={() => setStep("operator")}
+              className="text-xs text-gray-500 hover:text-gray-800 mb-3"
+            >
+              ← Changer de moyen
+            </button>
+            <h2 className="text-xl font-bold text-gray-900 mb-1">
+              {operator.icon} {operator.label}
+            </h2>
+            <p className="text-sm text-gray-600 mb-4">
+              Envoyez exactement{" "}
+              <span className="text-orange-600 font-bold">{formatPrice(PRICE_XOF)}</span> au numéro :
             </p>
-            <div className="bg-gray-800 border border-gray-600 rounded-xl p-4 flex items-center justify-between gap-3">
-              <span className="text-2xl font-mono font-bold tracking-wider">{operator.number}</span>
+            <div className="bg-orange-50 border-2 border-orange-300 rounded-xl p-4 flex items-center justify-between gap-3">
+              <span className="text-2xl font-mono font-bold tracking-wider text-gray-900">
+                {operator.number}
+              </span>
               <button
                 onClick={copyNumber}
-                className="text-xs bg-orange-500 hover:bg-orange-600 px-3 py-2 rounded-lg font-bold whitespace-nowrap"
+                className="text-xs bg-orange-500 hover:bg-orange-600 text-white px-3 py-2 rounded-lg font-bold whitespace-nowrap"
               >
                 {copied ? "✅ Copié" : "📋 Copier"}
               </button>
             </div>
-            <ol className="text-sm text-gray-300 space-y-2 my-5 list-decimal list-inside">
-              <li>Ouvrez votre application {operator.label}</li>
-              <li>Envoyez {formatPrice(PRICE_XOF)} au numéro ci-dessus</li>
-              <li>Vous recevrez un SMS avec un <strong className="text-white">ID de transaction</strong> — gardez-le</li>
+            <ol className="text-sm text-gray-700 space-y-2 my-5 list-decimal list-inside">
+              <li>
+                Ouvrez votre application <strong>{operator.label}</strong>
+              </li>
+              <li>
+                Envoyez {formatPrice(PRICE_XOF)} au numéro ci-dessus
+              </li>
+              <li>
+                Vous recevrez un SMS avec un{" "}
+                <strong className="text-gray-900">ID de transaction</strong> — gardez-le
+              </li>
             </ol>
             <button
               onClick={() => setStep("form")}
@@ -201,26 +224,53 @@ export function PaymentModal({ open, onClose, onSuccess, payment }: PaymentModal
         {/* ── Étape 3 : confirmation ── */}
         {step === "form" && operator && (
           <>
-            <button onClick={() => setStep("instructions")} className="text-xs text-gray-400 hover:text-white mb-3">← Retour</button>
-            <h2 className="text-xl font-bold mb-1">Confirmez votre paiement</h2>
-            <p className="text-sm text-gray-400 mb-4">
+            <button
+              onClick={() => setStep("instructions")}
+              className="text-xs text-gray-500 hover:text-gray-800 mb-3"
+            >
+              ← Retour
+            </button>
+            <h2 className="text-xl font-bold text-gray-900 mb-1">Confirmez votre paiement</h2>
+            <p className="text-sm text-gray-600 mb-4">
               Ces informations permettent de retrouver votre transaction {operator.label}.
             </p>
             <div className="space-y-3">
               <div>
-                <label className="text-xs text-gray-400 block mb-1">Votre nom complet</label>
-                <input type="text" value={payerName} onChange={(e) => setPayerName(e.target.value)} placeholder="Ex : Awa Traoré" className={inputCls} />
+                <label className="text-xs text-gray-600 block mb-1">Votre nom complet</label>
+                <input
+                  type="text"
+                  value={payerName}
+                  onChange={(e) => setPayerName(e.target.value)}
+                  placeholder="Ex : Awa Traoré"
+                  className={inputCls}
+                />
               </div>
               <div>
-                <label className="text-xs text-gray-400 block mb-1">Numéro utilisé pour le paiement</label>
-                <input type="tel" value={payerPhone} onChange={(e) => setPayerPhone(e.target.value)} placeholder="Ex : +226 70 00 00 00" className={inputCls} />
+                <label className="text-xs text-gray-600 block mb-1">
+                  Numéro utilisé pour le paiement
+                </label>
+                <input
+                  type="tel"
+                  value={payerPhone}
+                  onChange={(e) => setPayerPhone(e.target.value)}
+                  placeholder="Ex : +226 70 00 00 00"
+                  className={inputCls}
+                />
               </div>
               <div>
-                <label className="text-xs text-gray-400 block mb-1">ID de transaction (reçu par SMS)</label>
-                <input type="text" value={transactionRef} onChange={(e) => setTransactionRef(e.target.value)} placeholder="Ex : MP240915.1432.A12345" className={inputCls} />
+                <label className="text-xs text-gray-600 block mb-1">
+                  ID de transaction (reçu par SMS)
+                </label>
+                <input
+                  type="text"
+                  value={transactionRef}
+                  onChange={(e) => setTransactionRef(e.target.value)}
+                  placeholder="Ex : MP240915.1432.A12345"
+                  className={inputCls}
+                />
               </div>
             </div>
-            {error && <p className="text-sm text-red-400 mt-3">{error}</p>}
+            {error && <p className="text-sm text-red-600 mt-3">{error}</p>}
             <button
               onClick={handleSubmitProof}
               disabled={payment.paymentLoading}
@@ -235,23 +285,31 @@ export function PaymentModal({ open, onClose, onSuccess, payment }: PaymentModal
         {step === "waiting" && (
           <div className="text-center py-4">
             <div className="w-16 h-16 border-4 border-green-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-            <h2 className="text-xl font-bold mb-2">Demande envoyée !</h2>
-            <p className="text-sm text-gray-400 mb-1">
+            <h2 className="text-xl font-bold text-gray-900 mb-2">Demande envoyée !</h2>
+            <p className="text-sm text-gray-600 mb-1">
               Votre demande est en attente de validation.
             </p>
-            <p className="text-sm text-gray-400 mb-4">
-              Vous pouvez fermer cette fenêtre et continuer à éditer — les boutons de publication s'activeront automatiquement dès validation.
+            <p className="text-sm text-gray-600 mb-4">
+              Vous pouvez fermer cette fenêtre et continuer à éditer — les boutons de publication
+              s'activeront automatiquement dès validation.
             </p>
             {pollTimedOut && (
-              <div className="bg-gray-800 border border-gray-600 rounded-lg p-3 mb-4 text-sm text-gray-300">
-                Toujours pas validé ? Le paiement est vérifié manuellement — cela peut prendre un instant.
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 mb-4 text-sm text-gray-700">
+                Toujours pas validé ? Le paiement est vérifié manuellement — cela peut prendre un
+                instant.
               </div>
             )}
             <div className="flex gap-2">
-              <button onClick={onClose} className="flex-1 bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 rounded-lg text-sm">
+              <button
+                onClick={onClose}
+                className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold py-3 rounded-lg text-sm"
+              >
                 Continuer l'édition
               </button>
-              <button onClick={verifyNow} className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg text-sm">
+              <button
+                onClick={verifyNow}
+                className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg text-sm"
+              >
                 🔄 Vérifier maintenant
               </button>
             </div>
