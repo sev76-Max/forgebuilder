@@ -46,7 +46,7 @@ async function deployToNetlify(files: Record<string, string>, siteName: string):
   for (const [filename, content] of Object.entries(files)) {
     zip.file(filename, content);
   }
-  const zipBuffer = await zip.generateAsync({ type: "uint8array" });
+  const zipBuffer = await zip.generateAsync({ type: "arraybuffer" });
 
   // 3. Déploiement du zip
   const deployRes = await fetch(`https://api.netlify.com/api/v1/sites/${siteData.id}/deploys`, {
